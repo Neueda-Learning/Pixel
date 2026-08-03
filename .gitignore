@@ -1,0 +1,12 @@
+# Local environment files
+backend/.env
+
+# Build output
+backend/target/
+frontend/node_modules/
+frontend/dist/
+
+
+backend/run.log
+
+backend/.env
