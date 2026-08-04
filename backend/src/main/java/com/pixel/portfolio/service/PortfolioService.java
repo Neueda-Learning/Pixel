@@ -1,6 +1,8 @@
 package com.pixel.portfolio.service;
 
+import com.pixel.portfolio.dto.AllocationDto;
 import com.pixel.portfolio.dto.HoldingDto;
+import com.pixel.portfolio.dto.PortfolioSummaryDto;
 import com.pixel.portfolio.model.Instrument;
 import com.pixel.portfolio.model.PriceHistory;
 import com.pixel.portfolio.model.Transaction;
@@ -74,6 +76,36 @@ public class PortfolioService {
         }
         holdings.sort(Comparator.comparing(HoldingDto::getSymbol));
         return holdings;
+    }
+
+    public PortfolioSummaryDto getSummary() {
+        List<HoldingDto> holdings = getHoldings();
+
+        BigDecimal totalValue = holdings.stream().map(HoldingDto::getMarketValue).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalCost = holdings.stream()
+                .map(h -> h.getAvgCost().multiply(h.getQuantity()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalGainLoss = totalValue.subtract(totalCost);
+        BigDecimal totalGainLossPct = totalCost.compareTo(BigDecimal.ZERO) > 0
+                ? totalGainLoss.divide(totalCost, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+
+        Map<String, BigDecimal> byType = new HashMap<>();
+        for (HoldingDto h : holdings) {
+            byType.merge(h.getAssetType(), h.getMarketValue(), BigDecimal::add);
+        }
+        List<AllocationDto> allocation = byType.entrySet().stream()
+                .map(e -> new AllocationDto(
+                        e.getKey(),
+                        e.getValue().setScale(2, RoundingMode.HALF_UP),
+                        totalValue.compareTo(BigDecimal.ZERO) > 0
+                                ? e.getValue().divide(totalValue, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP)
+                                : BigDecimal.ZERO))
+                .sorted(Comparator.comparing(AllocationDto::getAssetType))
+                .toList();
+
+        return new PortfolioSummaryDto(totalValue, totalCost, totalGainLoss, totalGainLossPct, holdings.size(), allocation);
     }
 
     /** Live quote via MarketDataService (which itself falls back to price_history); degrades to zero if truly unavailable. */
