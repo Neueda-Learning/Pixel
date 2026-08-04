@@ -24,7 +24,8 @@ npm run build       # production build to dist/
 - ✅ Project scaffold: Vite + React Router, design tokens (`styles/theme.css`,
   `styles/base.css`), routing skeleton (`/`, `/transactions`,
   `/instruments/:symbol`) with placeholder pages.
-- ⬜ Layout, Sidebar, Topbar
+- ✅ Layout, Sidebar, Topbar — responsive app shell with a collapsible mobile
+  nav (breakpoint at 900px).
 - ⬜ API layer (`src/api/*`) + `useApi` data-fetching hook
 - ⬜ Dashboard page (KPIs, allocation donut, performance chart, holdings/transactions tables)
 - ⬜ Instrument detail page (price chart, profile, risk panel, news)
