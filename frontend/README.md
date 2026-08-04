@@ -35,4 +35,5 @@ npm run build       # production build to dist/
   chart, risk panel (8 stat tiles + BUY/HOLD/AVOID recommendation), news feed.
 - ✅ Transactions page — validated add-transaction form (buy/sell, qty, price,
   fees, date) and a deletable, period-filterable history table.
-- ⬜ Responsive polish pass
+- ✅ Responsive polish pass — verified breakpoints for mobile nav (900px),
+  KPI grid (800px), dashboard chart layout (1000px), and risk tile grid (700px).
