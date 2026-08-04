@@ -26,7 +26,9 @@ npm run build       # production build to dist/
   `/instruments/:symbol`) with placeholder pages.
 - ✅ Layout, Sidebar, Topbar — responsive app shell with a collapsible mobile
   nav (breakpoint at 900px).
-- ⬜ API layer (`src/api/*`) + `useApi` data-fetching hook
+- ✅ API layer (`src/api/client.js` + instruments/market/portfolio/risk/transactions
+  modules) and `useApi` data-fetching hook (`{data, error, loading, reload}`),
+  wired directly against the live backend.
 - ⬜ Dashboard page (KPIs, allocation donut, performance chart, holdings/transactions tables)
 - ⬜ Instrument detail page (price chart, profile, risk panel, news)
 - ⬜ Transactions page (add form, history table)
