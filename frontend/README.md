@@ -37,3 +37,17 @@ npm run build       # production build to dist/
   fees, date) and a deletable, period-filterable history table.
 - ✅ Responsive polish pass — verified breakpoints for mobile nav (900px),
   KPI grid (800px), dashboard chart layout (1000px), and risk tile grid (700px).
+
+## Feature summary
+
+The frontend is feature-complete against the backend API contract:
+
+- **Dashboard** (`/`) — portfolio KPIs, allocation donut, performance chart
+  (period toggle), holdings table, and the 5 most recent transactions.
+- **Instrument detail** (`/instruments/:symbol`) — company profile & live
+  quote, price history chart (period toggle), rule-based risk panel, and
+  recent news.
+- **Transactions** (`/transactions`) — add buy/sell transactions with
+  client-side validation, and a period-filterable, deletable history table.
+- Responsive app shell (collapsible mobile sidebar) and shared design tokens
+  for consistent theming across all pages.
