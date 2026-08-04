@@ -33,5 +33,6 @@ npm run build       # production build to dist/
   holdings table, recent transactions table.
 - ✅ Instrument detail page — company profile/quote header, price history
   chart, risk panel (8 stat tiles + BUY/HOLD/AVOID recommendation), news feed.
-- ⬜ Transactions page (add form, history table)
+- ✅ Transactions page — validated add-transaction form (buy/sell, qty, price,
+  fees, date) and a deletable, period-filterable history table.
 - ⬜ Responsive polish pass
