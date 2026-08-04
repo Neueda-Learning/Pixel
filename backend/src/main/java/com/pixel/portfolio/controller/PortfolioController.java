@@ -1,6 +1,7 @@
 package com.pixel.portfolio.controller;
 
 import com.pixel.portfolio.dto.HoldingDto;
+import com.pixel.portfolio.dto.PerformancePointDto;
 import com.pixel.portfolio.dto.PortfolioSummaryDto;
 import com.pixel.portfolio.service.PortfolioService;
 import org.springframework.web.bind.annotation.*;
@@ -25,5 +26,10 @@ public class PortfolioController {
     @GetMapping("/summary")
     public PortfolioSummaryDto getSummary() {
         return portfolioService.getSummary();
+    }
+
+    @GetMapping("/performance")
+    public List<PerformancePointDto> getPerformance(@RequestParam(defaultValue = "6M") String period) {
+        return portfolioService.getPerformance(period);
     }
 }

@@ -2,6 +2,7 @@ package com.pixel.portfolio.service;
 
 import com.pixel.portfolio.dto.AllocationDto;
 import com.pixel.portfolio.dto.HoldingDto;
+import com.pixel.portfolio.dto.PerformancePointDto;
 import com.pixel.portfolio.dto.PortfolioSummaryDto;
 import com.pixel.portfolio.model.Instrument;
 import com.pixel.portfolio.model.PriceHistory;
@@ -9,15 +10,21 @@ import com.pixel.portfolio.model.Transaction;
 import com.pixel.portfolio.repository.InstrumentRepository;
 import com.pixel.portfolio.repository.PriceHistoryRepository;
 import com.pixel.portfolio.repository.TransactionRepository;
+import com.pixel.portfolio.util.PeriodUtil;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 /**
  * Derives holdings and portfolio value entirely from the transaction ledger —
@@ -108,6 +115,52 @@ public class PortfolioService {
         return new PortfolioSummaryDto(totalValue, totalCost, totalGainLoss, totalGainLossPct, holdings.size(), allocation);
     }
 
+    public List<PerformancePointDto> getPerformance(String period) {
+        List<Transaction> allTx = transactionRepository.findAll();
+        if (allTx.isEmpty()) return List.of();
+
+        Map<String, List<Transaction>> bySymbol = groupBySymbol(allTx);
+
+        Map<String, NavigableMap<LocalDate, BigDecimal>> priceSeries = new HashMap<>();
+        TreeSet<LocalDate> allDates = new TreeSet<>();
+        for (String symbol : bySymbol.keySet()) {
+            NavigableMap<LocalDate, BigDecimal> series = new TreeMap<>();
+            for (PriceHistory row : priceHistoryRepository.findBySymbolOrderByTradeDateAsc(symbol)) {
+                series.put(row.getTradeDate(), row.getClose());
+            }
+            priceSeries.put(symbol, series);
+            allDates.addAll(series.keySet());
+        }
+        if (allDates.isEmpty()) return List.of();
+
+        LocalDate today = LocalDate.now();
+        LocalDate startDate = PeriodUtil.startDateFor(period, today);
+        List<LocalDate> timeline = allDates.stream()
+                .filter(d -> startDate == null || !d.isBefore(startDate))
+                .sorted()
+                .toList();
+        if (timeline.isEmpty()) return List.of();
+
+        Map<String, SymbolCursor> cursors = new HashMap<>();
+        for (Map.Entry<String, List<Transaction>> e : bySymbol.entrySet()) {
+            cursors.put(e.getKey(), new SymbolCursor(e.getValue(), priceSeries.get(e.getKey())));
+        }
+
+        List<PerformancePointDto> result = new ArrayList<>();
+        for (LocalDate date : timeline) {
+            BigDecimal total = BigDecimal.ZERO;
+            for (SymbolCursor cursor : cursors.values()) {
+                cursor.advanceTo(date);
+                if (cursor.qty.compareTo(BigDecimal.ZERO) <= 0) continue;
+                Map.Entry<LocalDate, BigDecimal> priceEntry = cursor.prices.floorEntry(date);
+                if (priceEntry == null) continue;
+                total = total.add(cursor.qty.multiply(priceEntry.getValue()));
+            }
+            result.add(new PerformancePointDto(date, total.setScale(2, RoundingMode.HALF_UP)));
+        }
+        return result;
+    }
+
     /** Live quote via MarketDataService (which itself falls back to price_history); degrades to zero if truly unavailable. */
     private CurrentPrice currentPriceFor(String symbol) {
         try {
@@ -155,5 +208,34 @@ public class PortfolioService {
     }
 
     private record Position(BigDecimal qty, BigDecimal avgCost) {}
+
+    /** Walks a symbol's transaction list forward, tracking running quantity as-of a given date. */
+    private static class SymbolCursor {
+        private final List<Transaction> txsAsc;
+        private final NavigableMap<LocalDate, BigDecimal> prices;
+        private int idx = 0;
+        private BigDecimal qty = BigDecimal.ZERO;
+
+        SymbolCursor(List<Transaction> txsAsc, NavigableMap<LocalDate, BigDecimal> prices) {
+            this.txsAsc = txsAsc;
+            this.prices = prices;
+        }
+
+        void advanceTo(LocalDate date) {
+            while (idx < txsAsc.size() && txDate(txsAsc.get(idx)).compareTo(date) <= 0) {
+                Transaction tx = txsAsc.get(idx);
+                if ("BUY".equalsIgnoreCase(tx.getTxType())) {
+                    qty = qty.add(tx.getQuantity());
+                } else if ("SELL".equalsIgnoreCase(tx.getTxType())) {
+                    qty = qty.subtract(tx.getQuantity().min(qty));
+                }
+                idx++;
+            }
+        }
+
+        private LocalDate txDate(Transaction tx) {
+            return tx.getExecutedAt().atZone(ZoneOffset.UTC).toLocalDate();
+        }
+    }
 }
 
