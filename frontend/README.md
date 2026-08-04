@@ -29,7 +29,8 @@ npm run build       # production build to dist/
 - ✅ API layer (`src/api/client.js` + instruments/market/portfolio/risk/transactions
   modules) and `useApi` data-fetching hook (`{data, error, loading, reload}`),
   wired directly against the live backend.
-- ⬜ Dashboard page (KPIs, allocation donut, performance chart, holdings/transactions tables)
+- ✅ Dashboard page — KPI cards, allocation donut, portfolio performance chart,
+  holdings table, recent transactions table.
 - ⬜ Instrument detail page (price chart, profile, risk panel, news)
 - ⬜ Transactions page (add form, history table)
 - ⬜ Responsive polish pass
