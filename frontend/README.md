@@ -31,6 +31,7 @@ npm run build       # production build to dist/
   wired directly against the live backend.
 - ✅ Dashboard page — KPI cards, allocation donut, portfolio performance chart,
   holdings table, recent transactions table.
-- ⬜ Instrument detail page (price chart, profile, risk panel, news)
+- ✅ Instrument detail page — company profile/quote header, price history
+  chart, risk panel (8 stat tiles + BUY/HOLD/AVOID recommendation), news feed.
 - ⬜ Transactions page (add form, history table)
 - ⬜ Responsive polish pass
