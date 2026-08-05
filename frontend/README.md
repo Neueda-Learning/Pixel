@@ -48,6 +48,18 @@ npm run build       # production build to dist/
   shadow when the period is up, or red with a red gradient shadow when the
   period is down (Google Finance style), based on comparing the first and
   last values in the series.
+- ✅ Chart year-axis ticks — `TimeSeriesChart`'s x-axis switches from
+  "Jan 5"-style ticks to year-only ticks once the plotted data spans more
+  than ~1 year (e.g. the "ALL"/max period), so long ranges don't show
+  repetitive day-level labels.
+- ✅ Live stock ticker — `StockTicker`, a scrolling marquee of 15 well-known
+  symbols (AAPL, MSFT, GOOGL, AMZN, TSLA, META, NVDA, NFLX, JPM, V, DIS, KO,
+  PEP, WMT, BA) with live price + % change, polling the existing
+  `/api/market/quote/{symbol}` endpoint (Finnhub-backed, server-cached) every
+  30s. Each ticker item links to that symbol's Instrument Detail page. Shown
+  above the `Topbar` on every page via `Layout`.
+- ✅ Persistent footer — `Footer`, a fixed copyright bar shown on every page
+  via `Layout`.
 
 > **Note:** Chart data depends on the backend having a `TWELVEDATA_API_KEY`
 > configured (see [backend/README.md](../backend/README.md#configuration)).
@@ -65,5 +77,6 @@ The frontend is feature-complete against the backend API contract:
   recent news.
 - **Transactions** (`/transactions`) — add buy/sell transactions with
   client-side validation, and a period-filterable, deletable history table.
-- Responsive app shell (collapsible mobile sidebar) and shared design tokens
-  for consistent theming across all pages.
+- Responsive app shell (collapsible mobile sidebar, live stock ticker header,
+  persistent footer) and shared design tokens for consistent theming across
+  all pages.

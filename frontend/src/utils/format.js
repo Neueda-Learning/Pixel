@@ -35,6 +35,12 @@ export const formatShortDate = (value) => {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+export const formatYear = (value) => {
+  if (!value) return '—'
+  const d = new Date(value)
+  return d.toLocaleDateString('en-US', { year: 'numeric' })
+}
+
 export const formatDateTime = (value) => {
   if (!value) return '—'
   const d = new Date(value)

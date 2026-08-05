@@ -12,6 +12,7 @@
 
 .app-content {
   padding: var(--space-6);
+  padding-bottom: calc(var(--space-6) + var(--footer-height));
   flex: 1;
   max-width: 1320px;
   width: 100%;
@@ -26,7 +27,7 @@
 }
 
 @media (max-width: 900px) {
-  .app-content { padding: var(--space-4); }
+  .app-content { padding: var(--space-4); padding-bottom: calc(var(--space-4) + var(--footer-height)); }
 }
 
 @media (min-width: 901px) {

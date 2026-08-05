@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Outlet, useLocation, useParams } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import Topbar from './Topbar'
+import StockTicker from './StockTicker'
+import Footer from './Footer'
 import './Layout.css'
 
 function titleFor(pathname, params) {
@@ -21,10 +23,12 @@ export default function Layout() {
       <Sidebar open={navOpen} onNavigate={() => setNavOpen(false)} />
       {navOpen && <div className="scrim" onClick={() => setNavOpen(false)} />}
       <div className="app-main">
+        <StockTicker />
         <Topbar title={titleFor(location.pathname, params)} onMenuClick={() => setNavOpen((o) => !o)} />
         <main className="app-content">
           <Outlet />
         </main>
+        <Footer />
       </div>
     </div>
   )
