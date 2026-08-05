@@ -37,6 +37,7 @@ export default function HoldingsTable({ holdings }) {
                 <td className="num tabular">{formatCurrency(h.currentPrice)}</td>
                 <td className="num tabular">{formatCurrency(h.marketValue)}</td>
                 <td className={`num tabular ${positive ? 'text-positive' : 'text-negative'}`}>
+                  {positive ? '▲ ' : '▼ '}
                   {formatCurrency(h.gainLoss)} ({formatPercent(h.gainLossPct, { signed: true })})
                 </td>
               </tr>

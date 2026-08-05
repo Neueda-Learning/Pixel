@@ -37,6 +37,11 @@ npm run build       # production build to dist/
   fees, date) and a deletable, period-filterable history table.
 - ✅ Responsive polish pass — verified breakpoints for mobile nav (900px),
   KPI grid (800px), dashboard chart layout (1000px), and risk tile grid (700px).
+- ✅ Gain/loss visual treatment — `KpiCard` "Total gain / loss" value and the
+  `HoldingsTable` gain/loss column now render in green with a `▲` arrow for
+  profit and red with a `▼` arrow for loss (using the existing `--positive` /
+  `--negative` theme tokens), matching the pattern already used for quote
+  deltas and BUY/SELL labels elsewhere in the app.
 
 ## Feature summary
 
