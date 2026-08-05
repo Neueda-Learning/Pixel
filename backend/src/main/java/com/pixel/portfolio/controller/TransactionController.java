@@ -9,8 +9,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/transactions")
@@ -39,8 +41,18 @@ public class TransactionController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Delete a transaction", description = "Removes a transaction from the ledger.")
+    @Operation(summary = "Delete a transaction")
     public void delete(@PathVariable Long id) {
         transactionService.delete(id);
+    }
+
+    @PostMapping("/import")
+    @Operation(summary = "Import transactions from CSV", description = "Bulk import buy/sell transactions from a CSV file. Expected columns: symbol,txType,quantity,price,fees,executedAt,notes")
+    public Map<String, Object> importCsv(@RequestParam("file") MultipartFile file) {
+        List<TransactionResponseDto> imported = transactionService.importCsv(file);
+        return Map.of(
+            "imported", imported.size(),
+            "transactions", imported
+        );
     }
 }
