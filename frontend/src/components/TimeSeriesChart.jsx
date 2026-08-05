@@ -1,7 +1,9 @@
 import { useId, useMemo } from 'react'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import ChartTooltip from './ChartTooltip'
-import { formatShortDate } from '../utils/format'
+import { formatShortDate, formatYear } from '../utils/format'
+
+const YEAR_SPAN_THRESHOLD_DAYS = 365
 
 export default function TimeSeriesChart({
   data,
@@ -25,6 +27,18 @@ export default function TimeSeriesChart({
     return last >= first ? 'var(--positive)' : 'var(--negative)'
   }, [color, data, yKey])
 
+  // Long ranges (e.g. "ALL") span multiple years, so "Jan 5"-style ticks become
+  // repetitive/unreadable — switch the axis to year-only ticks past ~1 year of data.
+  const spansMultipleYears = useMemo(() => {
+    if (!data || data.length < 2) return false
+    const first = new Date(data[0]?.[xKey]).getTime()
+    const last = new Date(data[data.length - 1]?.[xKey]).getTime()
+    if (Number.isNaN(first) || Number.isNaN(last)) return false
+    return (last - first) / 86_400_000 > YEAR_SPAN_THRESHOLD_DAYS
+  }, [data, xKey])
+
+  const axisTickFormatter = spansMultipleYears ? formatYear : formatShortDate
+
   return (
     <ResponsiveContainer width="100%" height={height}>
       <AreaChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
@@ -37,11 +51,11 @@ export default function TimeSeriesChart({
         <CartesianGrid vertical={false} stroke="var(--chart-grid)" strokeDasharray="0" />
         <XAxis
           dataKey={xKey}
-          tickFormatter={formatShortDate}
+          tickFormatter={axisTickFormatter}
           tick={{ fill: 'var(--text-muted)', fontSize: 11.5 }}
           axisLine={{ stroke: 'var(--chart-axis)' }}
           tickLine={false}
-          minTickGap={40}
+          minTickGap={spansMultipleYears ? 60 : 40}
         />
         <YAxis
           tick={{ fill: 'var(--text-muted)', fontSize: 11.5 }}
