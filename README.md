@@ -25,17 +25,19 @@ React (Vite) ── HTTP/JSON ──> Spring Boot REST API ──> MySQL
 - **Holdings are derived, not stored** — computed from the transaction ledger
   using the average-cost method.
 
-## Current status
+## Release
 
-This repo is being built module-by-module by the team, following the existing
-architecture as a reference design:
+**v1.0.0** — 2026-08-05. All planned features are complete and the application is
+production-ready. See [KANBAN.md](KANBAN.md) for the full feature history.
 
-- ✅ **Foundation & Infra** — MySQL schema, `Instrument`/`PriceHistory` entities
-  and repositories, `HistoricalDataLoader`, shared exception handling, CORS
-  config, docker-compose, Dockerfiles, CI.
-- 🚧 **Portfolio domain** (transactions, holdings, summary/performance) — in progress.
-- 🚧 **Market data & Risk domain** (Finnhub proxy, risk metrics) — in progress.
-- 🚧 **Frontend** (dashboard, instrument detail, transactions UI) — in progress.
+## Feature status
+
+- ✅ **Foundation & Infra** — MySQL schema, entities, repositories, `HistoricalDataLoader`, CORS, docker-compose, Dockerfiles, CI.
+- ✅ **Market Data** — Finnhub proxy (quote, profile, news, search), Caffeine cache, graceful DB fallback.
+- ✅ **Risk Engine** — Annualised volatility, Sharpe ratio, max drawdown, beta, BUY/HOLD/AVOID recommendation.
+- ✅ **Portfolio domain** — Transaction ledger, average-cost holdings derivation, summary, performance history.
+- ✅ **Frontend** — Dashboard, instrument detail, transactions UI, responsive layout.
+- ✅ **API docs** — Swagger UI (`/swagger-ui.html`), `docs/API.md`, `docs/ARCHITECTURE.md`.
 
 ## Quickstart
 
