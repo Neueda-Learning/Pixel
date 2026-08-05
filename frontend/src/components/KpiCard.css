@@ -57,12 +57,12 @@
 }
 
 .kpi-card-list {
-  flex: 1.4;
+  flex: 0.9;
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 132px;
+  max-height: 88px;
   overflow-y: auto;
   scrollbar-width: none;
 }
