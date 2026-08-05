@@ -51,7 +51,7 @@ export default function Sidebar({ open, onNavigate }) {
         ))}
       </nav>
       <div className="sidebar-footer">
-        <span className="text-muted">Educational use only</span>
+        <span className="text-muted"></span>
       </div>
     </aside>
   )

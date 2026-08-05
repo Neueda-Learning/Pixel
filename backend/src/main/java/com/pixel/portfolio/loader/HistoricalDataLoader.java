@@ -4,6 +4,8 @@ import com.pixel.portfolio.model.Instrument;
 import com.pixel.portfolio.model.PriceHistory;
 import com.pixel.portfolio.repository.InstrumentRepository;
 import com.pixel.portfolio.repository.PriceHistoryRepository;
+import com.pixel.portfolio.repository.TransactionRepository;
+import com.pixel.portfolio.service.TwelveDataHistoricalService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,54 +26,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Random;
-import java.util.Set;
 import java.util.stream.Stream;
 
 /**
- * Bulk-loads historical daily prices from CSVs in the seed folder on startup.
- * Falls back to a synthetic random walk for a demo symbol set if no CSVs are
- * present and price_history is empty, so the app is never blank for a demo.
+ * Loads historical daily prices for the symbols actually held in the portfolio (every distinct
+ * symbol that appears in the transaction table). Prefers CSVs dropped in the seed folder for a
+ * given symbol; for anything still missing, fetches real daily OHLCV from the Twelve Data API
+ * and persists it into price_history so it's only ever fetched once. The symbol list is derived
+ * from the DB — there is no hardcoded demo/synthetic data.
  */
 @Component
 public class HistoricalDataLoader implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(HistoricalDataLoader.class);
-
-    private static final Map<String, String[]> KNOWN_INSTRUMENTS = Map.ofEntries(
-            Map.entry("AAPL", new String[]{"Apple Inc.", "STOCK"}),
-            Map.entry("MSFT", new String[]{"Microsoft Corporation", "STOCK"}),
-            Map.entry("GOOGL", new String[]{"Alphabet Inc. Class A", "STOCK"}),
-            Map.entry("TSLA", new String[]{"Tesla, Inc.", "STOCK"}),
-            Map.entry("SPY", new String[]{"SPDR S&P 500 ETF Trust", "ETF"}),
-            Map.entry("NVDA", new String[]{"NVIDIA Corporation", "STOCK"}),
-            Map.entry("AMZN", new String[]{"Amazon.com, Inc.", "STOCK"}),
-            Map.entry("META", new String[]{"Meta Platforms, Inc.", "STOCK"}),
-            Map.entry("NFLX", new String[]{"Netflix, Inc.", "STOCK"}),
-            Map.entry("AMD", new String[]{"Advanced Micro Devices, Inc.", "STOCK"}),
-            Map.entry("INTC", new String[]{"Intel Corporation", "STOCK"}),
-            Map.entry("JPM", new String[]{"JPMorgan Chase & Co.", "STOCK"}),
-            Map.entry("V", new String[]{"Visa Inc.", "STOCK"}),
-            Map.entry("MA", new String[]{"Mastercard Incorporated", "STOCK"}),
-            Map.entry("JNJ", new String[]{"Johnson & Johnson", "STOCK"}),
-            Map.entry("WMT", new String[]{"Walmart Inc.", "STOCK"}),
-            Map.entry("PG", new String[]{"Procter & Gamble Co.", "STOCK"}),
-            Map.entry("DIS", new String[]{"The Walt Disney Company", "STOCK"}),
-            Map.entry("KO", new String[]{"The Coca-Cola Company", "STOCK"}),
-            Map.entry("PEP", new String[]{"PepsiCo, Inc.", "STOCK"}),
-            Map.entry("XOM", new String[]{"Exxon Mobil Corporation", "STOCK"}),
-            Map.entry("BAC", new String[]{"Bank of America Corporation", "STOCK"}),
-            Map.entry("ORCL", new String[]{"Oracle Corporation", "STOCK"}),
-            Map.entry("CRM", new String[]{"Salesforce, Inc.", "STOCK"}),
-            Map.entry("COST", new String[]{"Costco Wholesale Corporation", "STOCK"})
-    );
-
-    private static final Set<String> KNOWN_ETFS = Set.of("SPY", "QQQ", "VOO", "VTI", "IVV", "DIA");
-
-    private static final List<String> DEMO_SYMBOLS = List.copyOf(KNOWN_INSTRUMENTS.keySet());
-
-    /** Growth/higher-beta names get more daily volatility in the synthetic walk, for realistic risk metrics. */
-    private static final Set<String> HIGH_VOL_SYMBOLS = Set.of("TSLA", "NVDA", "AMD", "META", "NFLX");
 
     private static final DateTimeFormatter[] DATE_FORMATS = {
             DateTimeFormatter.ISO_LOCAL_DATE,
@@ -81,13 +48,19 @@ public class HistoricalDataLoader implements CommandLineRunner {
 
     private final InstrumentRepository instrumentRepository;
     private final PriceHistoryRepository priceHistoryRepository;
+    private final TransactionRepository transactionRepository;
+    private final TwelveDataHistoricalService twelveDataService;
     private final String seedDir;
 
     public HistoricalDataLoader(InstrumentRepository instrumentRepository,
                                  PriceHistoryRepository priceHistoryRepository,
+                                 TransactionRepository transactionRepository,
+                                 TwelveDataHistoricalService twelveDataService,
                                  @Value("${app.seed-dir:../infra/db/seed}") String seedDir) {
         this.instrumentRepository = instrumentRepository;
         this.priceHistoryRepository = priceHistoryRepository;
+        this.transactionRepository = transactionRepository;
+        this.twelveDataService = twelveDataService;
         this.seedDir = seedDir;
     }
 
@@ -95,25 +68,51 @@ public class HistoricalDataLoader implements CommandLineRunner {
     public void run(String... args) throws Exception {
         Path dir = Paths.get(seedDir);
         List<Path> csvFiles = listCsvFiles(dir);
-
         if (!csvFiles.isEmpty()) {
             log.info("Found {} CSV file(s) in {} — loading historical prices", csvFiles.size(), dir.toAbsolutePath());
             for (Path csv : csvFiles) {
                 loadCsv(csv);
             }
-        } else {
-            log.info("No CSVs found in {} — using synthetic data for any demo symbol without history", dir.toAbsolutePath());
         }
 
-        // Per-symbol idempotent: only backfills symbols that still have zero rows (e.g. newly
-        // added demo symbols on an existing DB), never touches ones already loaded from CSV/before.
-        List<String> missing = DEMO_SYMBOLS.stream()
+        List<String> portfolioSymbols = transactionRepository.findDistinctSymbols();
+        if (portfolioSymbols.isEmpty()) {
+            log.info("No transactions yet — nothing to backfill");
+            return;
+        }
+
+        // Per-symbol idempotent: only backfills symbols that still have zero rows.
+        List<String> missing = portfolioSymbols.stream()
                 .filter(symbol -> priceHistoryRepository.countBySymbol(symbol) == 0)
                 .toList();
-        if (!missing.isEmpty()) {
-            log.warn("SYNTHETIC placeholder data — replace with real Kaggle CSVs in infra/db/seed/ (symbols: {})", missing);
-            for (String symbol : missing) {
-                generateSynthetic(symbol);
+        if (missing.isEmpty()) {
+            return;
+        }
+
+        if (!twelveDataService.hasApiKey()) {
+            log.warn("TWELVEDATA_API_KEY is not set — no historical price chart for portfolio symbol(s): {}", missing);
+            return;
+        }
+
+        log.info("Backfilling live historical prices from Twelve Data for portfolio symbol(s): {}", missing);
+        for (int i = 0; i < missing.size(); i++) {
+            String symbol = missing.get(i);
+            List<PriceHistory> rows = twelveDataService.fetchDailyHistory(symbol);
+            if (!rows.isEmpty()) {
+                ensureInstrument(symbol);
+                priceHistoryRepository.saveAll(rows);
+                log.info("Loaded {} row(s) for {} from Twelve Data (live)", rows.size(), symbol);
+            } else {
+                log.warn("No historical data available from Twelve Data for {}", symbol);
+            }
+            // Free tier is rate-limited to 8 requests/minute — pace calls to avoid 429s.
+            if (i < missing.size() - 1) {
+                try {
+                    Thread.sleep(8000);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
             }
         }
     }
@@ -223,71 +222,8 @@ public class HistoricalDataLoader implements CommandLineRunner {
     }
 
     private void ensureInstrument(String symbol) {
-        String[] meta = KNOWN_INSTRUMENTS.get(symbol);
-        String name = meta != null ? meta[0] : symbol;
-        String assetType = meta != null ? meta[1] : (KNOWN_ETFS.contains(symbol) ? "ETF" : "STOCK");
-        instrumentRepository.save(new Instrument(symbol, name, assetType, "USD"));
-    }
-
-    private static final Map<String, Double> SYNTHETIC_START_PRICES = Map.ofEntries(
-            Map.entry("AAPL", 180.0),
-            Map.entry("MSFT", 380.0),
-            Map.entry("GOOGL", 140.0),
-            Map.entry("TSLA", 250.0),
-            Map.entry("SPY", 450.0),
-            Map.entry("NVDA", 130.0),
-            Map.entry("AMZN", 185.0),
-            Map.entry("META", 490.0),
-            Map.entry("NFLX", 650.0),
-            Map.entry("AMD", 160.0),
-            Map.entry("INTC", 32.0),
-            Map.entry("JPM", 195.0),
-            Map.entry("V", 275.0),
-            Map.entry("MA", 460.0),
-            Map.entry("JNJ", 155.0),
-            Map.entry("WMT", 68.0),
-            Map.entry("PG", 165.0),
-            Map.entry("DIS", 112.0),
-            Map.entry("KO", 62.0),
-            Map.entry("PEP", 170.0),
-            Map.entry("XOM", 115.0),
-            Map.entry("BAC", 38.0),
-            Map.entry("ORCL", 125.0),
-            Map.entry("CRM", 280.0),
-            Map.entry("COST", 730.0)
-    );
-
-    private void generateSynthetic(String symbol) {
-        ensureInstrument(symbol);
-
-        double startPrice = SYNTHETIC_START_PRICES.getOrDefault(symbol, 100.0);
-        double dailyDrift = 0.0004;
-        double dailyVol = HIGH_VOL_SYMBOLS.contains(symbol) ? 0.032 : 0.016;
-
-        Random random = new Random(symbol.hashCode());
-        LocalDate start = LocalDate.now().minusYears(2);
-        LocalDate today = LocalDate.now();
-
-        List<PriceHistory> rows = new ArrayList<>();
-        double close = startPrice;
-        for (LocalDate date = start; !date.isAfter(today); date = date.plusDays(1)) {
-            if (date.getDayOfWeek().getValue() >= 6) continue; // skip weekends
-
-            double changePct = dailyDrift + random.nextGaussian() * dailyVol;
-            double newClose = Math.max(1.0, close * (1 + changePct));
-            double open = close;
-            double high = Math.max(open, newClose) * (1 + Math.abs(random.nextGaussian()) * 0.004);
-            double low = Math.min(open, newClose) * (1 - Math.abs(random.nextGaussian()) * 0.004);
-            long volume = 1_000_000L + (long) (random.nextDouble() * 5_000_000L);
-
-            rows.add(new PriceHistory(symbol, date, bd(open), bd(high), bd(low), bd(newClose), bd(newClose), volume));
-            close = newClose;
+        if (!instrumentRepository.existsById(symbol)) {
+            instrumentRepository.save(new Instrument(symbol, symbol, "STOCK", "USD"));
         }
-        priceHistoryRepository.saveAll(rows);
-        log.info("Generated {} synthetic daily price row(s) for {}", rows.size(), symbol);
-    }
-
-    private BigDecimal bd(double v) {
-        return BigDecimal.valueOf(Math.round(v * 10000.0) / 10000.0);
     }
 }

@@ -42,6 +42,17 @@ npm run build       # production build to dist/
   profit and red with a `▼` arrow for loss (using the existing `--positive` /
   `--negative` theme tokens), matching the pattern already used for quote
   deltas and BUY/SELL labels elsewhere in the app.
+- ✅ Chart gain/loss styling — `TimeSeriesChart` (used by both the Dashboard
+  performance chart and the Instrument Detail price history chart) now renders
+  as a filled area chart that auto-colors green with a soft green gradient
+  shadow when the period is up, or red with a red gradient shadow when the
+  period is down (Google Finance style), based on comparing the first and
+  last values in the series.
+
+> **Note:** Chart data depends on the backend having a `TWELVEDATA_API_KEY`
+> configured (see [backend/README.md](../backend/README.md#configuration)).
+> Without it, the performance/price-history charts render empty for any
+> portfolio symbol that isn't already seeded with historical data.
 
 ## Feature summary
 

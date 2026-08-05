@@ -74,7 +74,7 @@ export default function Dashboard() {
           ) : performance.data.length === 0 ? (
             <p className="text-muted">No performance history yet.</p>
           ) : (
-            <TimeSeriesChart data={performance.data} valueFormatter={formatCurrency} color="var(--chart-1)" />
+            <TimeSeriesChart data={performance.data} valueFormatter={formatCurrency} />
           )}
         </div>
 
