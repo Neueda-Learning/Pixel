@@ -3,3 +3,13 @@
   flex-direction: column;
   gap: var(--space-5);
 }
+
+.metric-selector {
+  display: flex;
+  gap: 3px;
+}
+
+@media (max-width: 700px) {
+  .metric-selector { flex-wrap: wrap; }
+}
+

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import useApi from '../hooks/useApi'
-import { getPortfolioSummary, getPortfolioPerformance, getHoldings } from '../api/portfolio'
+import { getPortfolioSummary, getPortfolioPerformance, getHoldings, exportPortfolio } from '../api/portfolio'
 import { getTransactions } from '../api/transactions'
 import KpiCard from '../components/KpiCard'
 import AllocationDonut from '../components/AllocationDonut'
@@ -15,6 +15,7 @@ import './Dashboard.css'
 
 export default function Dashboard() {
   const [period, setPeriod] = useState('6M')
+  const [exporting, setExporting] = useState(false)
 
   const summary = useApi(getPortfolioSummary, [])
   const performance = useApi(() => getPortfolioPerformance(period), [period])
@@ -24,11 +25,22 @@ export default function Dashboard() {
   const s = summary.data
   const totalPositive = (s?.totalGainLoss ?? 0) >= 0
 
+  const holdingItems = holdings.data || []
+  const stockCount = holdingItems.filter((h) => h.assetType === 'STOCK').length
+  const etfCount = holdingItems.filter((h) => h.assetType === 'ETF').length
+  const bondCount = holdingItems.filter((h) => h.assetType === 'BOND').length
+
+  const handleExport = async () => {
+    setExporting(true)
+    try { await exportPortfolio() } finally { setExporting(false) }
+  }
+
   return (
     <div className="dashboard">
       <section className="grid kpi-grid">
         {summary.loading ? (
           <>
+            <LoadingState height={92} />
             <LoadingState height={92} />
             <LoadingState height={92} />
             <LoadingState height={92} />
@@ -51,6 +63,7 @@ export default function Dashboard() {
               deltaPositive={totalPositive}
             />
             <KpiCard label="Holdings" value={s.holdingsCount} />
+            <KpiCard label="Cost basis" value={formatCurrency(s.totalCost)} />
           </>
         )}
       </section>
@@ -62,7 +75,9 @@ export default function Dashboard() {
               <div className="card-title">Portfolio performance</div>
               <div className="card-subtitle">Value over time</div>
             </div>
-            <PeriodToggle options={['1M', '3M', '6M', '1Y', 'ALL']} value={period} onChange={setPeriod} />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <PeriodToggle options={['1M', '3M', '6M', '1Y', 'ALL']} value={period} onChange={setPeriod} />
+            </div>
           </div>
           {performance.loading ? (
             <LoadingState height={280} />
@@ -74,7 +89,13 @@ export default function Dashboard() {
           ) : performance.data.length === 0 ? (
             <p className="text-muted">No performance history yet.</p>
           ) : (
-            <TimeSeriesChart data={performance.data} valueFormatter={formatCurrency} color="var(--chart-1)" />
+            <TimeSeriesChart
+              data={performance.data}
+              valueFormatter={formatCurrency}
+              color="var(--chart-1)"
+              showTypeSelector
+              defaultType="Area"
+            />
           )}
         </div>
 
@@ -101,8 +122,22 @@ export default function Dashboard() {
         <div className="card-header">
           <div>
             <div className="card-title">Holdings</div>
-            <div className="card-subtitle">Derived from your transaction history</div>
+            <div className="card-subtitle" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {!holdings.loading && holdingItems.length > 0 && (
+                <>
+                  {stockCount > 0 && <span className="holdings-badge">📈 {stockCount} Stock{stockCount !== 1 ? 's' : ''}</span>}
+                  {etfCount > 0  && <span className="holdings-badge">🗂️ {etfCount} ETF{etfCount !== 1 ? 's' : ''}</span>}
+                  {bondCount > 0 && <span className="holdings-badge">💵 {bondCount} Bond{bondCount !== 1 ? 's' : ''}</span>}
+                </>
+              )}
+            </div>
           </div>
+          <button className="action-btn primary" onClick={handleExport} disabled={exporting}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M12 3v12m0 0-4-4m4 4 4-4M3 17v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            {exporting ? 'Exporting…' : 'Export Portfolio'}
+          </button>
         </div>
         {holdings.loading ? (
           <LoadingState height={200} />
