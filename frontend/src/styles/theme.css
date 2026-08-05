@@ -1,0 +1,71 @@
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --bg-page: #f7f8fa;
+  --bg-surface: #ffffff;
+  --bg-surface-raised: #ffffff;
+  --bg-subtle: #f1f3f6;
+
+  /* Ink */
+  --text-primary: #12161c;
+  --text-secondary: #5b6472;
+  --text-muted: #8a8f98;
+  --text-on-accent: #ffffff;
+
+  /* Borders / shadows */
+  --border: rgba(15, 23, 42, 0.09);
+  --border-strong: rgba(15, 23, 42, 0.16);
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-md: 0 4px 14px rgba(16, 24, 40, 0.07);
+
+  /* Accent */
+  --accent: #1c5cab;
+  --accent-hover: #164a8a;
+  --accent-soft: #eaf1fb;
+  --accent-soft-border: #cfe1f7;
+
+  /* Chart categorical (fixed order — never cycle) */
+  --chart-1: #2a78d6;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #eda100;
+  --chart-5: #4a3aa7;
+  --chart-6: #e34948;
+  --chart-grid: #e6e8ec;
+  --chart-axis: #c7cbd3;
+
+  /* Status badges (soft tint + dark text + dot) */
+  --status-good-bg: #e7f6ea;
+  --status-good-text: #146c2e;
+  --status-good-dot: #0ca30c;
+
+  --status-warn-bg: #fef3e0;
+  --status-warn-text: #8a5a00;
+  --status-warn-dot: #f2a90c;
+
+  --status-bad-bg: #fbeaea;
+  --status-bad-text: #9a2b2b;
+  --status-bad-dot: #d03b3b;
+
+  /* Gain / loss text */
+  --positive: #146c2e;
+  --negative: #b42318;
+
+  /* Radii / spacing */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --sidebar-width: 232px;
+  --topbar-height: 64px;
+
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}

@@ -1,0 +1,48 @@
+.profile-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.profile-card-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.profile-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  object-fit: contain;
+  background: var(--bg-subtle);
+  flex: none;
+}
+
+.profile-logo-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 17px;
+}
+
+.profile-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.profile-quote {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.profile-quote-price {
+  font-size: 22px;
+  font-weight: 600;
+}

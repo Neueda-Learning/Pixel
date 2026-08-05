@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/portfolio}
+    username: ${SPRING_DATASOURCE_USERNAME:portfolio}
+    password: ${SPRING_DATASOURCE_PASSWORD:changeme}
+  jpa:
+    hibernate:
+      ddl-auto: update      # dev only; use validate + migrations later
+    open-in-view: false
+    properties:
+      hibernate.format_sql: true
+server:
+  port: 8080
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+app:
+  seed-dir: ${SEED_DIR:../infra/db/seed}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+finnhub:
+  api-key: ${FINNHUB_API_KEY:}
+  base-url: https://finnhub.io/api/v1
