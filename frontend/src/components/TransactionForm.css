@@ -6,10 +6,12 @@
 
 .tx-form-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: var(--space-3);
+  position: relative;
 }
 
 @media (max-width: 800px) {
   .tx-form-grid { grid-template-columns: repeat(2, 1fr); }
+  .tx-form-grid .field[style] { grid-column: span 2 !important; }
 }

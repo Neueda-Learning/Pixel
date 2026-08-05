@@ -42,11 +42,18 @@ public class TransactionService {
         this.twelveDataService = twelveDataService;
     }
 
-    public List<TransactionResponseDto> list(String period) {
-        LocalDate startDate = PeriodUtil.startDateFor(period, LocalDate.now());
-        List<Transaction> txs = startDate == null
-                ? transactionRepository.findAll()
-                : transactionRepository.findByExecutedAtAfter(startDate.atStartOfDay(ZoneOffset.UTC).toInstant());
+    public List<TransactionResponseDto> list(String period, LocalDate from, LocalDate to) {
+        List<Transaction> txs;
+        if (from != null) {
+            Instant start = from.atStartOfDay(ZoneOffset.UTC).toInstant();
+            Instant end = (to != null ? to : LocalDate.now()).plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+            txs = transactionRepository.findByExecutedAtBetween(start, end);
+        } else {
+            LocalDate startDate = PeriodUtil.startDateFor(period, LocalDate.now());
+            txs = startDate == null
+                    ? transactionRepository.findAll()
+                    : transactionRepository.findByExecutedAtAfter(startDate.atStartOfDay(ZoneOffset.UTC).toInstant());
+        }
         return txs.stream()
                 .sorted(Comparator.comparing(Transaction::getExecutedAt).reversed())
                 .map(this::toDto)
@@ -54,7 +61,53 @@ public class TransactionService {
     }
 
     public TransactionResponseDto add(TransactionRequestDto request) {
+        return toDto(createFrom(request));
+    }
+
+    /** Bulk-imports historical transactions (e.g. from CSV) reusing the same validation/backfill path as add(). */
+    public List<TransactionResponseDto> importAll(List<TransactionRequestDto> requests) {
+        return requests.stream().map(this::createFrom).map(this::toDto).toList();
+    }
+
+    public TransactionResponseDto update(Long id, TransactionRequestDto request) {
+        Transaction tx = transactionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction not found: " + id));
         String symbol = request.getSymbol().trim().toUpperCase(Locale.ROOT);
+        ensureInstrument(symbol);
+        tx.setSymbol(symbol);
+        tx.setTxType(request.getTxType().toUpperCase(Locale.ROOT));
+        tx.setQuantity(request.getQuantity());
+        tx.setPrice(request.getPrice());
+        tx.setFees(request.getFees() != null ? request.getFees() : BigDecimal.ZERO);
+        if (request.getExecutedAt() != null) {
+            tx.setExecutedAt(request.getExecutedAt());
+        }
+        tx.setNotes(request.getNotes());
+        return toDto(transactionRepository.save(tx));
+    }
+
+    public void delete(Long id) {
+        if (!transactionRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Transaction not found: " + id);
+        }
+        transactionRepository.deleteById(id);
+    }
+
+    private Transaction createFrom(TransactionRequestDto request) {
+        String symbol = request.getSymbol().trim().toUpperCase(Locale.ROOT);
+        ensureInstrument(symbol);
+        Transaction tx = new Transaction();
+        tx.setSymbol(symbol);
+        tx.setTxType(request.getTxType().toUpperCase(Locale.ROOT));
+        tx.setQuantity(request.getQuantity());
+        tx.setPrice(request.getPrice());
+        tx.setFees(request.getFees() != null ? request.getFees() : BigDecimal.ZERO);
+        tx.setExecutedAt(request.getExecutedAt() != null ? request.getExecutedAt() : Instant.now());
+        tx.setNotes(request.getNotes());
+        return transactionRepository.save(tx);
+    }
+
+    private void ensureInstrument(String symbol) {
         if (!instrumentRepository.existsById(symbol)) {
             instrumentRepository.save(new Instrument(symbol, symbol, "STOCK", "USD"));
         }
@@ -72,22 +125,6 @@ public class TransactionService {
                 log.warn("Failed to backfill historical data for {}: {}", symbol, e.getMessage());
             }
         }
-        Transaction tx = new Transaction();
-        tx.setSymbol(request.getSymbol().trim().toUpperCase(Locale.ROOT));
-        tx.setTxType(request.getTxType().toUpperCase(Locale.ROOT));
-        tx.setQuantity(request.getQuantity());
-        tx.setPrice(request.getPrice());
-        tx.setFees(request.getFees() != null ? request.getFees() : BigDecimal.ZERO);
-        tx.setExecutedAt(request.getExecutedAt() != null ? request.getExecutedAt() : Instant.now());
-        tx.setNotes(request.getNotes());
-        return toDto(transactionRepository.save(tx));
-    }
-
-    public void delete(Long id) {
-        if (!transactionRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Transaction not found: " + id);
-        }
-        transactionRepository.deleteById(id);
     }
 
     private TransactionResponseDto toDto(Transaction t) {

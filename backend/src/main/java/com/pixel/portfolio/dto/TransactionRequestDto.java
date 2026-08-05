@@ -16,6 +16,7 @@ public class TransactionRequestDto {
 
     @NotNull(message = "quantity is required")
     @Positive(message = "quantity must be positive")
+    @Digits(integer = 15, fraction = 0, message = "quantity must be a whole number")
     private BigDecimal quantity;
 
     @NotNull(message = "price is required")
@@ -25,7 +26,8 @@ public class TransactionRequestDto {
     @PositiveOrZero(message = "fees cannot be negative")
     private BigDecimal fees = BigDecimal.ZERO;
 
-    @NotNull(message = "executedAt is required")
+    // Optional: normal buy/sell transactions auto-stamp the current time; CSV import of
+    // historical transactions supplies an explicit executedAt.
     private Instant executedAt;
 
     @Size(max = 500, message = "notes must be at most 500 characters")
