@@ -46,6 +46,7 @@ export default function Dashboard() {
             <KpiCard
               label="Total gain / loss"
               value={formatCurrency(s.totalGainLoss)}
+              valuePositive={totalPositive}
               delta={formatPercent(s.totalGainLossPct, { signed: true })}
               deltaPositive={totalPositive}
             />
