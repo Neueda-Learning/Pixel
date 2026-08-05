@@ -5,17 +5,84 @@
   gap: var(--space-4);
   padding: 0 var(--space-6);
   border-bottom: 1px solid var(--border);
-  background: var(--bg-page);
+  background: var(--bg-surface);
   position: sticky;
   top: 0;
   z-index: 20;
+  box-shadow: var(--shadow-sm);
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
+}
+
+.topbar-brand-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent), #4a8fe0);
+  color: #fff;
+  font-weight: 800;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.topbar-brand-name {
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--accent);
+  letter-spacing: -0.3px;
 }
 
 .topbar-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+  flex: 1;
 }
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+
+.topbar-welcome {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-subtle);
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+}
+
+.topbar-add-client {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: background 120ms;
+  white-space: nowrap;
+}
+.topbar-add-client:hover { background: var(--accent-hover); }
 
 .topbar-menu-btn {
   display: none;
@@ -31,5 +98,12 @@
 
 @media (max-width: 900px) {
   .topbar-menu-btn { display: inline-flex; }
-  .topbar { padding: 0 var(--space-4); }
+  .topbar { padding: 0 var(--space-4); gap: var(--space-2); }
+  .topbar-brand-name { display: none; }
+  .topbar-welcome { display: none; }
 }
+
+@media (max-width: 480px) {
+  .topbar-add-client span { display: none; }
+}
+
