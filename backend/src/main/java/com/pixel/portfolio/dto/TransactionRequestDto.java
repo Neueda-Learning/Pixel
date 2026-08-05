@@ -26,6 +26,11 @@ public class TransactionRequestDto {
     @PositiveOrZero(message = "fees cannot be negative")
     private BigDecimal fees = BigDecimal.ZERO;
 
+    // Optional: raw type from the symbol search result (e.g. "Common Stock", "ETP"), used to
+    // classify a newly-created instrument's assetType. Ignored once the instrument already exists.
+    @Size(max = 60, message = "assetType must be at most 60 characters")
+    private String assetType;
+
     // Optional: normal buy/sell transactions auto-stamp the current time; CSV import of
     // historical transactions supplies an explicit executedAt.
     private Instant executedAt;
@@ -43,6 +48,8 @@ public class TransactionRequestDto {
     public void setPrice(BigDecimal price) { this.price = price; }
     public BigDecimal getFees() { return fees; }
     public void setFees(BigDecimal fees) { this.fees = fees; }
+    public String getAssetType() { return assetType; }
+    public void setAssetType(String assetType) { this.assetType = assetType; }
     public Instant getExecutedAt() { return executedAt; }
     public void setExecutedAt(Instant executedAt) { this.executedAt = executedAt; }
     public String getNotes() { return notes; }

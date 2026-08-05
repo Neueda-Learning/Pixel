@@ -6,6 +6,7 @@ import com.pixel.portfolio.repository.InstrumentRepository;
 import com.pixel.portfolio.repository.PriceHistoryRepository;
 import com.pixel.portfolio.repository.TransactionRepository;
 import com.pixel.portfolio.service.TwelveDataHistoricalService;
+import com.pixel.portfolio.util.AssetTypeClassifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -223,7 +224,7 @@ public class HistoricalDataLoader implements CommandLineRunner {
 
     private void ensureInstrument(String symbol) {
         if (!instrumentRepository.existsById(symbol)) {
-            instrumentRepository.save(new Instrument(symbol, symbol, "STOCK", "USD"));
+            instrumentRepository.save(new Instrument(symbol, symbol, AssetTypeClassifier.classify(symbol, null), "USD"));
         }
     }
 }

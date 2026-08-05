@@ -82,7 +82,10 @@ export default function SymbolAutocomplete({ value, onSelect, error, disabled })
                 onClick={() => handlePick(r)}
               >
                 <span>{r.description}</span>
-                <span className="symbol-autocomplete-symbol">{r.symbol}</span>
+                <span className="symbol-autocomplete-meta">
+                  {r.type && <span className="symbol-autocomplete-type">{r.type}</span>}
+                  <span className="symbol-autocomplete-symbol">{r.symbol}</span>
+                </span>
               </button>
             ))}
         </div>

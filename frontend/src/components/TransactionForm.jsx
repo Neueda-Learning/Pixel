@@ -50,6 +50,7 @@ export default function TransactionForm({ onSubmit, submitting }) {
       txType: values.txType,
       quantity: Number(values.quantity),
       price: quote.current,
+      assetType: values.instrument.type,
     }).then(() => {
       setValues(EMPTY)
       setQuote(null)

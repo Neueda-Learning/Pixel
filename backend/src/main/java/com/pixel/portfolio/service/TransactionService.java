@@ -10,6 +10,7 @@ import com.pixel.portfolio.model.Transaction;
 import com.pixel.portfolio.repository.InstrumentRepository;
 import com.pixel.portfolio.repository.PriceHistoryRepository;
 import com.pixel.portfolio.repository.TransactionRepository;
+import com.pixel.portfolio.util.AssetTypeClassifier;
 import com.pixel.portfolio.util.PeriodUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,7 +76,7 @@ public class TransactionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Transaction not found: " + id));
         String symbol = request.getSymbol().trim().toUpperCase(Locale.ROOT);
         String txType = request.getTxType().toUpperCase(Locale.ROOT);
-        ensureInstrument(symbol);
+        ensureInstrument(symbol, request.getAssetType());
         if ("SELL".equals(txType)) {
             requireSufficientHoldings(symbol, request.getQuantity(), id);
         }
@@ -101,7 +102,7 @@ public class TransactionService {
     private Transaction createFrom(TransactionRequestDto request) {
         String symbol = request.getSymbol().trim().toUpperCase(Locale.ROOT);
         String txType = request.getTxType().toUpperCase(Locale.ROOT);
-        ensureInstrument(symbol);
+        ensureInstrument(symbol, request.getAssetType());
         if ("SELL".equals(txType)) {
             requireSufficientHoldings(symbol, request.getQuantity(), null);
         }
@@ -130,9 +131,10 @@ public class TransactionService {
         }
     }
 
-    private void ensureInstrument(String symbol) {
+    private void ensureInstrument(String symbol, String rawAssetTypeHint) {
         if (!instrumentRepository.existsById(symbol)) {
-            instrumentRepository.save(new Instrument(symbol, symbol, "STOCK", "USD"));
+            String assetType = AssetTypeClassifier.classify(symbol, rawAssetTypeHint);
+            instrumentRepository.save(new Instrument(symbol, symbol, assetType, "USD"));
         }
         // New symbol added to the portfolio: fetch its real historical chart data from
         // Twelve Data right away (instead of waiting for the next app restart) so the

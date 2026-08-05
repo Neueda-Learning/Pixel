@@ -45,3 +45,20 @@ button.symbol-autocomplete-item:hover {
   color: var(--accent);
   flex: none;
 }
+
+.symbol-autocomplete-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
+}
+
+.symbol-autocomplete-type {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--bg-subtle);
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
