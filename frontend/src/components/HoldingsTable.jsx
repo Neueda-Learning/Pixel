@@ -32,13 +32,15 @@ export default function HoldingsTable({ holdings }) {
                   </Link>
                 </td>
                 <td className="text-secondary">{h.name}</td>
-                <td className="num tabular">{formatNumber(h.quantity, 4)}</td>
+                <td className="num tabular">{formatNumber(h.quantity, 0)}</td>
                 <td className="num tabular">{formatCurrency(h.avgCost)}</td>
                 <td className="num tabular">{formatCurrency(h.currentPrice)}</td>
                 <td className="num tabular">{formatCurrency(h.marketValue)}</td>
-                <td className={`num tabular ${positive ? 'text-positive' : 'text-negative'}`}>
-                  {positive ? '▲ ' : '▼ '}
-                  {formatCurrency(h.gainLoss)} ({formatPercent(h.gainLossPct, { signed: true })})
+                <td className="num tabular">
+                  <span className={positive ? 'text-positive' : 'text-negative'}>
+                    {positive ? '▲ ' : '▼ '}
+                    {formatCurrency(h.gainLoss)} ({formatPercent(h.gainLossPct, { signed: true })})
+                  </span>
                 </td>
               </tr>
             )

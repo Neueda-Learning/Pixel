@@ -50,7 +50,21 @@ export default function Dashboard() {
               delta={formatPercent(s.totalGainLossPct, { signed: true })}
               deltaPositive={totalPositive}
             />
-            <KpiCard label="Holdings" value={s.holdingsCount} />
+            <KpiCard
+              label="Holdings"
+              value={s.holdingsCount}
+              list={
+                holdings.data && holdings.data.length > 0
+                  ? [...holdings.data]
+                      .sort((a, b) => b.marketValue - a.marketValue)
+                      .map((h) => ({
+                        symbol: h.symbol,
+                        positive: h.gainLoss >= 0,
+                        changeLabel: formatPercent(h.gainLossPct, { signed: true }),
+                      }))
+                  : undefined
+              }
+            />
           </>
         )}
       </section>
