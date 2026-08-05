@@ -4,7 +4,7 @@ import { getTransactions, addTransaction, updateTransaction, deleteTransaction }
 import TransactionForm from '../components/TransactionForm'
 import TransactionsTable from '../components/TransactionsTable'
 import EditTransactionModal from '../components/EditTransactionModal'
-import CsvImportPanel from '../components/CsvImportPanel'
+import CsvImportModal from '../components/CsvImportModal'
 import PeriodToggle from '../components/PeriodToggle'
 import LoadingState from '../components/LoadingState'
 import ErrorState, { extractErrorMessage } from '../components/ErrorState'
@@ -17,10 +17,12 @@ export default function Transactions() {
   const [formError, setFormError] = useState(null)
   const [editing, setEditing] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [csvOpen, setCsvOpen] = useState(false)
 
-  const customRangeActive = Boolean(dateRange.from && dateRange.to)
+  const isCustomRange = period === 'Custom'
+  const customRangeActive = isCustomRange && Boolean(dateRange.from && dateRange.to)
   const tx = useApi(
-    () => getTransactions(period, customRangeActive ? { from: dateRange.from, to: dateRange.to } : {}),
+    () => getTransactions(isCustomRange ? 'ALL' : period, customRangeActive ? dateRange : {}),
     [period, customRangeActive, dateRange.from, dateRange.to]
   )
 
@@ -70,6 +72,9 @@ export default function Transactions() {
             <div className="card-title">Add transaction</div>
             <div className="card-subtitle">Record a buy or sell — holdings are derived automatically</div>
           </div>
+          <button type="button" className="btn" onClick={() => setCsvOpen(true)}>
+            Import from CSV
+          </button>
         </div>
         <TransactionForm onSubmit={handleAdd} submitting={submitting} />
         {formError && (
@@ -82,42 +87,34 @@ export default function Transactions() {
       <section className="card card-pad">
         <div className="card-header">
           <div>
-            <div className="card-title">Import from CSV</div>
-            <div className="card-subtitle">Bulk-import historical transactions from a CSV file</div>
-          </div>
-        </div>
-        <CsvImportPanel onImported={tx.reload} />
-      </section>
-
-      <section className="card card-pad">
-        <div className="card-header">
-          <div>
             <div className="card-title">History</div>
           </div>
           <div className="tx-history-filters">
-            <div className="tx-date-range">
-              <input
-                type="date"
-                className="input"
-                value={dateRange.from}
-                onChange={(e) => setDateRange((r) => ({ ...r, from: e.target.value }))}
-                aria-label="From date"
-              />
-              <span className="text-muted">to</span>
-              <input
-                type="date"
-                className="input"
-                value={dateRange.to}
-                onChange={(e) => setDateRange((r) => ({ ...r, to: e.target.value }))}
-                aria-label="To date"
-              />
-              {customRangeActive && (
-                <button type="button" className="btn btn-ghost" onClick={clearDateRange}>
-                  Clear
-                </button>
-              )}
-            </div>
-            <PeriodToggle options={['3M', '6M', '1Y', 'ALL']} value={period} onChange={setPeriod} />
+            <PeriodToggle options={['3M', '6M', '1Y', 'ALL', 'Custom']} value={period} onChange={setPeriod} />
+            {isCustomRange && (
+              <div className="tx-date-range">
+                <input
+                  type="date"
+                  className="input"
+                  value={dateRange.from}
+                  onChange={(e) => setDateRange((r) => ({ ...r, from: e.target.value }))}
+                  aria-label="From date"
+                />
+                <span className="text-muted">to</span>
+                <input
+                  type="date"
+                  className="input"
+                  value={dateRange.to}
+                  onChange={(e) => setDateRange((r) => ({ ...r, to: e.target.value }))}
+                  aria-label="To date"
+                />
+                {customRangeActive && (
+                  <button type="button" className="btn btn-ghost" onClick={clearDateRange}>
+                    Clear
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
         {tx.loading ? (
@@ -142,6 +139,8 @@ export default function Transactions() {
         onClose={() => setEditing(null)}
         saving={saving}
       />
+
+      <CsvImportModal open={csvOpen} onClose={() => setCsvOpen(false)} onImported={tx.reload} />
     </div>
   )
 }

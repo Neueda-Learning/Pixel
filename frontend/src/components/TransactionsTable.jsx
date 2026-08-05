@@ -43,15 +43,37 @@ export default function TransactionsTable({ transactions, onDelete, onEdit, comp
                 <td className="num tabular">{formatCurrency(total)}</td>
                 {!compact && (
                   <td className="row-actions">
-                    <button className="btn btn-ghost" onClick={() => onEdit(tx)} aria-label={`Edit transaction ${tx.id}`}>
-                      Edit
+                    <button
+                      className="icon-btn"
+                      onClick={() => onEdit(tx)}
+                      aria-label={`Edit transaction ${tx.id}`}
+                      title="Edit"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path
+                          d="M4 20h4L18.5 9.5a1.5 1.5 0 000-2.12l-1.88-1.88a1.5 1.5 0 00-2.12 0L4 15.5V20z"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinejoin="round"
+                          strokeLinecap="round"
+                        />
+                      </svg>
                     </button>
                     <button
-                      className="btn btn-ghost"
+                      className="icon-btn icon-btn-danger"
                       onClick={() => onDelete(tx.id)}
                       aria-label={`Delete transaction ${tx.id}`}
+                      title="Delete"
                     >
-                      Delete
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path
+                          d="M5 7h14M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-1 0v12a1 1 0 01-1 1h-4a1 1 0 01-1-1V7h6z"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
                     </button>
                   </td>
                 )}

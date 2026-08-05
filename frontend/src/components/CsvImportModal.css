@@ -1,0 +1,35 @@
+.csv-modal-card {
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.csv-dropzone {
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: var(--space-6) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+.csv-dropzone:hover,
+.csv-dropzone.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.csv-sample-btn {
+  align-self: flex-start;
+}
+
+.csv-import-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}

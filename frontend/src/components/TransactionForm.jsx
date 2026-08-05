@@ -92,7 +92,10 @@ export default function TransactionForm({ onSubmit, submitting }) {
         </div>
 
         <div className="field">
-          <label htmlFor="tx-price">Price (live)</label>
+          <label htmlFor="tx-price">
+            <span className="live-dot" aria-hidden="true" />
+            Price (live)
+          </label>
           <input
             id="tx-price"
             className="input"
@@ -105,7 +108,7 @@ export default function TransactionForm({ onSubmit, submitting }) {
 
       {values.instrument && <StockInsights symbol={values.instrument.symbol} quote={quote} />}
 
-      <button type="submit" className="btn btn-primary" disabled={submitting}>
+      <button type="submit" className="btn btn-primary tx-form-submit" disabled={submitting}>
         {submitting ? 'Adding…' : 'Add transaction'}
       </button>
     </form>
