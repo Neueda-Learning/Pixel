@@ -2,6 +2,7 @@ package com.pixel.portfolio.service;
 
 import com.pixel.portfolio.dto.TransactionRequestDto;
 import com.pixel.portfolio.dto.TransactionResponseDto;
+import com.pixel.portfolio.exception.BadRequestException;
 import com.pixel.portfolio.exception.ResourceNotFoundException;
 import com.pixel.portfolio.model.Instrument;
 import com.pixel.portfolio.model.PriceHistory;
@@ -73,9 +74,13 @@ public class TransactionService {
         Transaction tx = transactionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Transaction not found: " + id));
         String symbol = request.getSymbol().trim().toUpperCase(Locale.ROOT);
+        String txType = request.getTxType().toUpperCase(Locale.ROOT);
         ensureInstrument(symbol);
+        if ("SELL".equals(txType)) {
+            requireSufficientHoldings(symbol, request.getQuantity(), id);
+        }
         tx.setSymbol(symbol);
-        tx.setTxType(request.getTxType().toUpperCase(Locale.ROOT));
+        tx.setTxType(txType);
         tx.setQuantity(request.getQuantity());
         tx.setPrice(request.getPrice());
         tx.setFees(request.getFees() != null ? request.getFees() : BigDecimal.ZERO);
@@ -95,16 +100,34 @@ public class TransactionService {
 
     private Transaction createFrom(TransactionRequestDto request) {
         String symbol = request.getSymbol().trim().toUpperCase(Locale.ROOT);
+        String txType = request.getTxType().toUpperCase(Locale.ROOT);
         ensureInstrument(symbol);
+        if ("SELL".equals(txType)) {
+            requireSufficientHoldings(symbol, request.getQuantity(), null);
+        }
         Transaction tx = new Transaction();
         tx.setSymbol(symbol);
-        tx.setTxType(request.getTxType().toUpperCase(Locale.ROOT));
+        tx.setTxType(txType);
         tx.setQuantity(request.getQuantity());
         tx.setPrice(request.getPrice());
         tx.setFees(request.getFees() != null ? request.getFees() : BigDecimal.ZERO);
         tx.setExecutedAt(request.getExecutedAt() != null ? request.getExecutedAt() : Instant.now());
         tx.setNotes(request.getNotes());
         return transactionRepository.save(tx);
+    }
+
+    /** Rejects a SELL that would exceed the net shares currently held for the symbol (BUY total minus SELL total, excluding the transaction being edited). */
+    private void requireSufficientHoldings(String symbol, BigDecimal sellQuantity, Long excludeTransactionId) {
+        BigDecimal held = transactionRepository.findAll().stream()
+                .filter(t -> t.getSymbol().equalsIgnoreCase(symbol))
+                .filter(t -> excludeTransactionId == null || !excludeTransactionId.equals(t.getId()))
+                .map(t -> "BUY".equalsIgnoreCase(t.getTxType()) ? t.getQuantity() : t.getQuantity().negate())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (sellQuantity.compareTo(held) > 0) {
+            throw new BadRequestException(String.format(Locale.ROOT,
+                    "Cannot sell %s share(s) of %s — only %s currently held.",
+                    sellQuantity.stripTrailingZeros().toPlainString(), symbol, held.stripTrailingZeros().toPlainString()));
+        }
     }
 
     private void ensureInstrument(String symbol) {
