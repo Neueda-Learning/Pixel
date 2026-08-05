@@ -4,10 +4,9 @@ import './CsvImportModal.css'
 
 const EXPECTED_HEADERS = ['symbol', 'txtype', 'quantity', 'price', 'date']
 
-const SAMPLE_CSV = `symbol,txType,quantity,price,date,assetType
-AAPL,BUY,10,187.32,2026-01-15,
-MSFT,SELL,5,412.50,2026-02-03,
-GLD,BUY,8,231.10,2026-03-10,COMMODITY
+const SAMPLE_CSV = `symbol,txType,quantity,price,date
+AAPL,BUY,10,187.32,2026-01-15
+MSFT,SELL,5,412.50,2026-02-03
 `
 
 function parseCsv(text) {
@@ -51,16 +50,7 @@ function validateRow(raw) {
   return {
     valid: errors.length === 0,
     errors,
-    parsed: errors.length === 0
-      ? {
-          symbol,
-          txType,
-          quantity,
-          price,
-          executedAt: new Date(dateMs).toISOString(),
-          assetType: raw.assettype?.trim() ? raw.assettype.trim().toUpperCase() : undefined,
-        }
-      : null,
+    parsed: errors.length === 0 ? { symbol, txType, quantity, price, executedAt: new Date(dateMs).toISOString() } : null,
   }
 }
 
@@ -162,7 +152,7 @@ export default function CsvImportModal({ open, onClose, onImported }) {
           />
           <p>Drag and drop a CSV file here, or click to choose a file</p>
           <span className="text-muted" style={{ fontSize: 12 }}>
-            Columns: symbol, txType, quantity, price, date, assetType (optional)
+            Columns: symbol, txType, quantity, price, date
           </span>
         </div>
 
