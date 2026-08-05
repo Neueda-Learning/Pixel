@@ -23,12 +23,14 @@ com.pixel.portfolio/
 ├── dto/              # API request/response objects (never exposes JPA entities directly)
 ├── exception/        # Global exception handler + custom exception types
 ├── integration/
-│   └── finnhub/      # Raw Finnhub API response models (deserialized from Finnhub JSON)
-├── loader/           # HistoricalDataLoader — CSV ingestion + synthetic seed on startup
+│   ├── finnhub/      # Raw Finnhub API response models (deserialized from Finnhub JSON)
+│   └── twelvedata/   # Raw Twelve Data API response models (time_series endpoint)
+├── loader/           # HistoricalDataLoader — CSV ingestion + Twelve Data backfill on startup
 ├── model/            # JPA entities: Instrument, PriceHistory, Transaction
 ├── repository/       # Spring Data JPA repositories
 ├── service/          # Business logic: Portfolio, Transaction, Instrument, Market, Risk
 │   └── risk/         # RiskMath — pure statistical calculations (volatility, Sharpe, beta, drawdown)
+│   TwelveDataHistoricalService # Fetches daily OHLCV history from Twelve Data for a symbol
 └── util/             # PeriodUtil — maps period strings (1M, 3M, …) to start dates
 ```
 
@@ -43,7 +45,12 @@ mysql -u root -p -e "CREATE DATABASE portfolio; CREATE USER 'portfolio'@'localho
 # 2. (Optional) set your Finnhub API key
 export FINNHUB_API_KEY=your_key_here
 
-# 3. Build and run
+# 3. Set your Twelve Data API key — REQUIRED for the portfolio/instrument price
+#    history charts (1M/3M/6M/1Y/ALL). Get a free key at https://twelvedata.com/.
+#    Without it, charts stay empty for any portfolio symbol not already seeded.
+export TWELVEDATA_API_KEY=your_key_here
+
+# 4. Build and run
 cd backend
 mvn spring-boot:run
 ```
@@ -54,7 +61,7 @@ API available at `http://localhost:8080`. Swagger UI at `http://localhost:8080/s
 
 ```bash
 # From the repo root
-cp .env.example .env   # fill in FINNHUB_API_KEY and DB passwords
+cp .env.example .env   # fill in FINNHUB_API_KEY, TWELVEDATA_API_KEY, and DB passwords
 docker compose up --build
 ```
 
@@ -68,17 +75,30 @@ All values come from environment variables (see `application.yml` and root `.env
 | DB user | `SPRING_DATASOURCE_USERNAME` | `portfolio` |
 | DB password | `SPRING_DATASOURCE_PASSWORD` | `changeme` |
 | Finnhub key | `FINNHUB_API_KEY` | *(empty — degrades gracefully)* |
+| Twelve Data key | `TWELVEDATA_API_KEY` | *(empty — no price history backfill)* |
 | CORS origins | `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` |
 | Seed CSV dir | `SEED_DIR` | `../infra/db/seed` |
+
+> **Chart data requires `TWELVEDATA_API_KEY`.** The performance/price-history charts on the
+> Dashboard and Instrument Detail pages are populated from the `price_history` table, which is
+> filled either from seed CSVs or, for any portfolio symbol not covered by a CSV, from the
+> [Twelve Data](https://twelvedata.com/) `time_series` endpoint. Sign up for a free API key and
+> set `TWELVEDATA_API_KEY` (locally or in `.env`) or the chart will simply have no data for that
+> symbol. The free tier is rate-limited to 8 requests/minute, so `HistoricalDataLoader` and
+> `TransactionService` pace backfill calls 8 seconds apart.
 
 ## Historical Data Loading
 
 On every startup, `HistoricalDataLoader` scans `SEED_DIR` for `<SYMBOL>.csv` files and
-bulk-inserts price history into `price_history` (idempotent). Any of the 25 known demo
-symbols that have no data yet get ~2 years of synthetic daily prices generated automatically,
-so the app is never empty.
+bulk-inserts price history into `price_history` (idempotent). It then derives the list of
+symbols actually held in the portfolio from the `transaction` table
+(`TransactionRepository.findDistinctSymbols()`) — there is no hardcoded demo/synthetic symbol
+list. For any of those symbols still missing `price_history` rows, it fetches real daily OHLCV
+data from the Twelve Data API via `TwelveDataHistoricalService` and persists it, so each symbol
+is only ever fetched once. Adding a brand-new symbol via a transaction (`TransactionService.add`)
+triggers the same on-demand backfill immediately, without waiting for a restart.
 
-To load real data (e.g. from Kaggle), drop CSVs into `infra/db/seed/` and restart.
+To load real data ahead of time (e.g. from Kaggle), drop CSVs into `infra/db/seed/` and restart.
 Expected columns: `Date, Open, High, Low, Close, Adj Close, Volume`.
 
 ## Running Tests
@@ -98,6 +118,9 @@ and summary aggregation.
 - **Finnhub is best-effort.** All market data calls fall back to the `price_history` DB
   table if Finnhub is unavailable or the API key is not set. The app never hard-fails
   on a missing external dependency.
+- **Historical data is portfolio-scoped, not hardcoded.** `HistoricalDataLoader` derives which
+  symbols need chart data from the `transaction` table, and backfills only those from Twelve
+  Data — no fixed demo symbol list, no synthetically generated prices.
 - **Caching is server-side.** Finnhub quote/profile/news responses are cached with
   Caffeine to respect rate limits. Cache TTLs are configured in `CacheConfig`.
 - **No holdings table.** Avoids sync issues between transactions and a derived holdings

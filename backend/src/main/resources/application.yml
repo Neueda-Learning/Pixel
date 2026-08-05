@@ -21,3 +21,6 @@ app:
 finnhub:
   api-key: ${FINNHUB_API_KEY:}
   base-url: https://finnhub.io/api/v1
+twelvedata:
+  api-key: ${TWELVEDATA_API_KEY:}
+  base-url: https://api.twelvedata.com

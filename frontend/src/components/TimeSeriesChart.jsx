@@ -1,4 +1,5 @@
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
+import { useId, useMemo } from 'react'
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import ChartTooltip from './ChartTooltip'
 import { formatShortDate } from '../utils/format'
 
@@ -6,14 +7,33 @@ export default function TimeSeriesChart({
   data,
   xKey = 'date',
   yKey = 'value',
-  color = 'var(--chart-1)',
+  color,
   height = 280,
   valueFormatter,
   yDomain = ['auto', 'auto'],
 }) {
+  const gradientId = useId()
+
+  // Auto-detect gain/loss trend (first vs. last point) and color the line + shadow
+  // green for gains and red for losses, like Google Finance — unless a color is forced.
+  const trendColor = useMemo(() => {
+    if (color) return color
+    if (!data || data.length < 2) return 'var(--chart-1)'
+    const first = data[0]?.[yKey]
+    const last = data[data.length - 1]?.[yKey]
+    if (typeof first !== 'number' || typeof last !== 'number') return 'var(--chart-1)'
+    return last >= first ? 'var(--positive)' : 'var(--negative)'
+  }, [color, data, yKey])
+
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+      <AreaChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={trendColor} stopOpacity={0.28} />
+            <stop offset="100%" stopColor={trendColor} stopOpacity={0} />
+          </linearGradient>
+        </defs>
         <CartesianGrid vertical={false} stroke="var(--chart-grid)" strokeDasharray="0" />
         <XAxis
           dataKey={xKey}
@@ -35,17 +55,18 @@ export default function TimeSeriesChart({
           content={<ChartTooltip formatter={valueFormatter} labelFormatter={formatShortDate} />}
           cursor={{ stroke: 'var(--chart-axis)', strokeWidth: 1 }}
         />
-        <Line
+        <Area
           type="monotone"
           dataKey={yKey}
-          stroke={color}
+          stroke={trendColor}
           strokeWidth={2}
+          fill={`url(#${gradientId})`}
           dot={false}
           activeDot={{ r: 4, strokeWidth: 2, stroke: 'var(--bg-surface)' }}
           name="Value"
           isAnimationActive={false}
         />
-      </LineChart>
+      </AreaChart>
     </ResponsiveContainer>
   )
 }
