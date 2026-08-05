@@ -66,7 +66,11 @@ public class HistoricalDataLoader implements CommandLineRunner {
             Map.entry("COST", new String[]{"Costco Wholesale Corporation", "STOCK"})
     );
 
-    private static final Set<String> KNOWN_ETFS = Set.of("SPY", "QQQ", "VOO", "VTI", "IVV", "DIA");
+    /** Maps seed subfolder name → asset_type for bulk CSV loading. */
+    private static final Map<String, String> ASSET_TYPE_FOLDERS = Map.of(
+            "stocks", "STOCK",
+            "etfs", "ETF"
+    );
 
     private static final List<String> DEMO_SYMBOLS = List.copyOf(KNOWN_INSTRUMENTS.keySet());
 
@@ -93,16 +97,29 @@ public class HistoricalDataLoader implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        Path dir = Paths.get(seedDir);
-        List<Path> csvFiles = listCsvFiles(dir);
+        Path seedRoot = Paths.get(seedDir);
+        int totalLoaded = 0;
 
-        if (!csvFiles.isEmpty()) {
-            log.info("Found {} CSV file(s) in {} — loading historical prices", csvFiles.size(), dir.toAbsolutePath());
-            for (Path csv : csvFiles) {
-                loadCsv(csv);
+        // Scan known asset-type subfolders (stocks/, etfs/) for CSVs
+        for (Map.Entry<String, String> entry : ASSET_TYPE_FOLDERS.entrySet()) {
+            String folderName = entry.getKey();
+            String assetType = entry.getValue();
+            Path subDir = seedRoot.resolve(folderName);
+            List<Path> csvFiles = listCsvFiles(subDir);
+
+            if (!csvFiles.isEmpty()) {
+                log.info("Found {} CSV file(s) in {} ({}) — loading historical prices",
+                        csvFiles.size(), subDir.toAbsolutePath(), assetType);
+                for (Path csv : csvFiles) {
+                    loadCsv(csv, assetType);
+                    totalLoaded++;
+                }
             }
-        } else {
-            log.info("No CSVs found in {} — using synthetic data for any demo symbol without history", dir.toAbsolutePath());
+        }
+
+        if (totalLoaded == 0) {
+            log.info("No CSVs found in {}/(stocks|etfs) — using synthetic data for any demo symbol without history",
+                    seedRoot.toAbsolutePath());
         }
 
         // Per-symbol idempotent: only backfills symbols that still have zero rows (e.g. newly
@@ -127,7 +144,7 @@ public class HistoricalDataLoader implements CommandLineRunner {
         }
     }
 
-    private void loadCsv(Path csv) {
+    private void loadCsv(Path csv, String assetType) {
         String symbol = stripExtension(csv.getFileName().toString()).toUpperCase(Locale.ROOT);
         long existing = priceHistoryRepository.countBySymbol(symbol);
         if (existing > 0) {
@@ -135,7 +152,7 @@ public class HistoricalDataLoader implements CommandLineRunner {
             return;
         }
 
-        ensureInstrument(symbol);
+        ensureInstrument(symbol, assetType);
 
         try (BufferedReader reader = Files.newBufferedReader(csv)) {
             String headerLine = reader.readLine();
@@ -222,10 +239,25 @@ public class HistoricalDataLoader implements CommandLineRunner {
         return dot > 0 ? filename.substring(0, dot) : filename;
     }
 
+    /**
+     * Ensures an instrument record exists, deriving the asset type from the seed folder structure.
+     * For CSV-loaded symbols, the assetType is determined by which subfolder (stocks/ vs etfs/)
+     * the CSV was found in. Still looks up KNOWN_INSTRUMENTS for curated display names.
+     */
+    private void ensureInstrument(String symbol, String assetType) {
+        String[] meta = KNOWN_INSTRUMENTS.get(symbol);
+        String name = meta != null ? meta[0] : symbol;
+        instrumentRepository.save(new Instrument(symbol, name, assetType, "USD"));
+    }
+
+    /**
+     * Fallback for synthetic demo data generation — defaults to STOCK asset type.
+     * Only used when no real CSV exists for a demo symbol.
+     */
     private void ensureInstrument(String symbol) {
         String[] meta = KNOWN_INSTRUMENTS.get(symbol);
         String name = meta != null ? meta[0] : symbol;
-        String assetType = meta != null ? meta[1] : (KNOWN_ETFS.contains(symbol) ? "ETF" : "STOCK");
+        String assetType = meta != null ? meta[1] : "STOCK";
         instrumentRepository.save(new Instrument(symbol, name, assetType, "USD"));
     }
 
