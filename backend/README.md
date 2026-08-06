@@ -122,7 +122,15 @@ across three classes in `src/test/java/com/pixel/portfolio/`:
 (`@ExtendWith(MockitoExtension.class)`, `@Mock`/`@InjectMocks`) so it runs without a database.
 
 CI (`.github/workflows/ci.yml`) runs `mvn -B test` on every push to `main` and on every pull
-request, uploading the Surefire reports as a build artifact.
+request, uploading the Surefire reports as a build artifact. We'll cover more classes (controllers,
+`InstrumentService`, `MarketService`, integration clients) in future releases.
+
+### Coverage
+
+The `jacoco-maven-plugin` (bound to the `test` phase in `pom.xml`) generates a coverage report on
+every `mvn test` run at `backend/target/site/jacoco/index.html` (line/branch coverage per
+package/class). `target/` is already in the root `.gitignore`, so the report is never committed —
+open it locally after running `mvn test` to browse coverage.
 
 ## Key Design Decisions
 
