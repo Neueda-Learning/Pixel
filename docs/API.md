@@ -185,6 +185,36 @@ Rule-based risk metrics and a BUY / HOLD / AVOID recommendation.
 
 ---
 
+## Chat Assistant
+
+Rule-based, deterministic natural-language portfolio Q&A — no external LLM/AI service,
+no API key, no network egress. Every answer is derived from live `PortfolioService` /
+`RiskService` data. See [docs/ARCHITECTURE.md#chat-assistant--ai-integration](ARCHITECTURE.md#chat-assistant--ai-integration)
+for the design rationale.
+
+### `POST /api/chat`
+Ask the portfolio assistant a question in plain English.
+
+**Request**
+```json
+{ "message": "What's my best performer?" }
+```
+
+**Response**
+```json
+{
+  "reply": "Your best performer is AAPL (Apple Inc.), +9.60% (+$168.50)."
+}
+```
+
+Supported intents: greeting/help, risk check & buy/sell recommendation for a named
+symbol (e.g. "should I buy AAPL?"), best/worst performer, allocation & rebalancing
+suggestions, holdings list/count, performance over a period (1M/3M/6M/1Y/ALL), and
+portfolio summary/value. Anything unmatched returns a help message listing example
+questions.
+
+---
+
 ## Error Responses
 
 All errors follow a consistent envelope:

@@ -10,7 +10,7 @@ Track what has shipped in **v1.0.0** and what is planned for future releases.
 | # | Feature | Commit | Date |
 |---|---------|--------|------|
 | 1 | `Instrument` + `PriceHistory` JPA entities and repositories | `e0e8714` | 2026-08-04 |
-| 2 | `HistoricalDataLoader` — CSV ingestion + synthetic 2-year seed | `b076cfc` | 2026-08-04 |
+| 2 | `HistoricalDataLoader` — CSV ingestion + on-demand Twelve Data backfill (portfolio-scoped, no synthetic data) | `b076cfc` | 2026-08-04 |
 | 3 | Global exception handler (`GlobalExceptionHandler`) + `PeriodUtil` | `3b60fca` | 2026-08-04 |
 | 4 | CORS config + `application.yml` with env-var-driven properties | `b0f4bdc` | 2026-08-04 |
 | 5 | Dockerfiles (backend + frontend), `.env.example`, `.gitignore` | `a72342b` | 2026-08-04 |
@@ -51,15 +51,23 @@ Track what has shipped in **v1.0.0** and what is planned for future releases.
 | 28 | Transactions page — validated add-transaction form + deletable history table | `86f153e` | 2026-08-04 |
 | 29 | Responsive polish — mobile nav (900 px), KPI grid (800 px), risk tiles (700 px) | `41ec316` | 2026-08-04 |
 
-### Epic 5 — Documentation
+### Epic 5 — AI Integration
 | # | Feature | Commit | Date |
 |---|---------|--------|------|
-| 30 | `docs/API.md` — full endpoint reference with request/response examples | `0543acd` | 2026-08-05 |
-| 31 | `docs/ARCHITECTURE.md` — component diagram, data flows, design decisions | `0543acd` | 2026-08-05 |
-| 32 | `backend/README.md` — package structure, local setup, config, design notes | *(this release)* | 2026-08-05 |
-| 33 | `frontend/README.md` — feature summary, dev/build commands, stack | `def74e2` | 2026-08-04 |
-| 34 | Root `README.md` — quickstart, env vars, data loading guide | `05972a3` | 2026-08-04 |
-| 35 | `KANBAN.md` — this file | *(this release)* | 2026-08-05 |
+| 30 | `ChatBotService` — deterministic, rule-based NLP intent matcher over `PortfolioService`/`RiskService` | *(this release)* | 2026-08-06 |
+| 31 | `POST /api/chat` — `ChatController` + `ChatRequestDto`/`ChatResponseDto` | *(this release)* | 2026-08-06 |
+| 32 | `ChatBotServiceTest` — unit coverage for intent matching and reply formatting | *(this release)* | 2026-08-06 |
+| 33 | `ChatPanel` — floating chat widget wired into `Layout`, `src/api/chat.js` | *(this release)* | 2026-08-06 |
+
+### Epic 6 — Documentation
+| # | Feature | Commit | Date |
+|---|---------|--------|------|
+| 34 | `docs/API.md` — full endpoint reference with request/response examples | `0543acd` | 2026-08-05 |
+| 35 | `docs/ARCHITECTURE.md` — component diagram, sequence diagrams, chat design rationale | `0543acd` | 2026-08-06 |
+| 36 | `backend/README.md` — package structure, local setup, config, design notes | *(this release)* | 2026-08-06 |
+| 37 | `frontend/README.md` — feature summary, dev/build commands, stack | `def74e2` | 2026-08-06 |
+| 38 | Root `README.md` — quickstart, env vars, architecture diagram, AI chat assistant section | `05972a3` | 2026-08-06 |
+| 39 | `KANBAN.md` — this file | *(this release)* | 2026-08-06 |
 
 ---
 
@@ -67,13 +75,15 @@ Track what has shipped in **v1.0.0** and what is planned for future releases.
 
 | # | Feature | Priority | Notes |
 |---|---------|----------|-------|
-| 36 | User authentication (JWT / Spring Security) | High | Multi-user portfolios; currently single-user |
-| 37 | Portfolio benchmarking vs SPY | High | Show alpha vs index on performance chart |
-| 38 | Dividend tracking and yield calculation | Medium | Add `DIVIDEND` tx type + income metrics |
-| 39 | Watchlist — track symbols without holding them | Medium | Separate from portfolio holdings |
-| 40 | Price alerts (WebSocket or polling) | Medium | Notify when price crosses threshold |
-| 41 | CSV export — transactions and holdings | Medium | Download ledger as CSV |
-| 42 | Dark / light theme toggle | Low | Design tokens already in place |
-| 43 | Portfolio comparison (multiple portfolios) | Low | Requires auth first |
-| 44 | Migrate `ddl-auto: update` → Flyway migrations | Low | Safer schema management for production |
-| 45 | E2E tests (Playwright) | Low | Cover dashboard, add transaction, detail flows |
+| 40 | User authentication (JWT / Spring Security) | High | Multi-user portfolios; currently single-user |
+| 41 | Portfolio benchmarking vs SPY | High | Show alpha vs index on performance chart |
+| 42 | Dividend tracking and yield calculation | Medium | Add `DIVIDEND` tx type + income metrics |
+| 43 | Watchlist — track symbols without holding them | Medium | Separate from portfolio holdings |
+| 44 | Price alerts (WebSocket or polling) | Medium | Notify when price crosses threshold |
+| 45 | CSV export — transactions and holdings | Medium | Download ledger as CSV |
+| 46 | LLM-backed chat upgrade (LangChain4j + tool calling) | Medium | Broader NL coverage; keeps answers grounded in real service data |
+| 47 | News sentiment analysis (RAG over embedded articles) | Medium | First feature that would actually justify a RAG pipeline |
+| 48 | Dark / light theme toggle | Low | Design tokens already in place |
+| 49 | Portfolio comparison (multiple portfolios) | Low | Requires auth first |
+| 50 | Migrate `ddl-auto: update` → Flyway migrations | Low | Safer schema management for production |
+| 51 | E2E tests (Playwright) | Low | Cover dashboard, add transaction, detail flows |

@@ -60,6 +60,9 @@ npm run build       # production build to dist/
   above the `Topbar` on every page via `Layout`.
 - ✅ Persistent footer — `Footer`, a fixed copyright bar shown on every page
   via `Layout`.
+- ✅ AI chat assistant UI — `ChatPanel`, a floating chat widget (shown on every
+  page via `Layout`) that posts to `/api/chat` (`src/api/chat.js`) and renders
+  the deterministic, rule-based portfolio assistant's replies.
 
 > **Note:** Chart data depends on the backend having a `TWELVEDATA_API_KEY`
 > configured (see [backend/README.md](../backend/README.md#configuration)).
@@ -77,6 +80,9 @@ The frontend is feature-complete against the backend API contract:
   recent news.
 - **Transactions** (`/transactions`) — add buy/sell transactions with
   client-side validation, and a period-filterable, deletable history table.
+- **Chat assistant** — a floating `ChatPanel` (available on every page) for
+  natural-language portfolio queries, e.g. "What's my best performer?" or
+  "Should I rebalance?", answered by the backend's rule-based `ChatBotService`.
 - Responsive app shell (collapsible mobile sidebar, live stock ticker header,
   persistent footer) and shared design tokens for consistent theming across
   all pages.

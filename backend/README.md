@@ -19,7 +19,7 @@ Spring Boot 3.2.5 / Java 17 REST API for the Pixel Portfolio Manager.
 ```
 com.pixel.portfolio/
 ├── config/           # CORS, cache, and RestTemplate configuration
-├── controller/       # REST controllers (Instrument, Market, Portfolio, Risk, Transaction)
+├── controller/       # REST controllers (Instrument, Market, Portfolio, Risk, Transaction, Chat)
 ├── dto/              # API request/response objects (never exposes JPA entities directly)
 ├── exception/        # Global exception handler + custom exception types
 ├── integration/
@@ -28,7 +28,7 @@ com.pixel.portfolio/
 ├── loader/           # HistoricalDataLoader — CSV ingestion + Twelve Data backfill on startup
 ├── model/            # JPA entities: Instrument, PriceHistory, Transaction
 ├── repository/       # Spring Data JPA repositories
-├── service/          # Business logic: Portfolio, Transaction, Instrument, Market, Risk
+├── service/          # Business logic: Portfolio, Transaction, Instrument, Market, Risk, ChatBot
 │   └── risk/         # RiskMath — pure statistical calculations (volatility, Sharpe, beta, drawdown)
 │   TwelveDataHistoricalService # Fetches daily OHLCV history from Twelve Data for a symbol
 └── util/             # PeriodUtil — maps period strings (1M, 3M, …) to start dates
@@ -108,8 +108,9 @@ cd backend
 mvn test
 ```
 
-Tests cover `PortfolioService` — average-cost calculations, buy/sell position tracking,
-and summary aggregation.
+Tests cover `PortfolioService` (average-cost calculations, buy/sell position tracking,
+summary aggregation) and `ChatBotService` (intent matching and reply formatting against
+real service data).
 
 ## Key Design Decisions
 
@@ -125,3 +126,9 @@ and summary aggregation.
   Caffeine to respect rate limits. Cache TTLs are configured in `CacheConfig`.
 - **No holdings table.** Avoids sync issues between transactions and a derived holdings
   snapshot; all portfolio math is deterministic from the ledger.
+- **The chat assistant is rule-based, not an LLM.** `ChatBotService` matches user
+  messages against a fixed set of keyword/threshold heuristics and answers using the
+  same `PortfolioService`/`RiskService` methods the REST API already exposes — zero
+  hallucination risk, no external API key, no cost per query. See
+  [docs/ARCHITECTURE.md#chat-assistant--ai-integration](../docs/ARCHITECTURE.md#chat-assistant--ai-integration)
+  for the full rationale and LLM upgrade path.
