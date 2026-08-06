@@ -36,7 +36,10 @@ services:
       - "8080:8080"
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_GROQ_API_KEY: ${VITE_GROQ_API_KEY:-}
     depends_on:
       - backend
     ports:
