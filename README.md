@@ -57,10 +57,17 @@ docker compose up --build
 
 | Service  | URL                                    |
 |----------|-----------------------------------------|
-| Frontend | http://localhost:5173                   |
-| Backend  | http://localhost:8080                   |
-| Swagger  | http://localhost:8080/swagger-ui.html   |
-| MySQL    | localhost:3306                          |
+| Frontend | http://localhost:18173                  |
+| Backend  | http://localhost:18080                  |
+| Swagger  | http://localhost:18080/swagger-ui.html  |
+| MySQL    | localhost:33061                         |
+
+Host ports are configurable via `DB_PORT`, `BACKEND_PORT`, `FRONTEND_PORT` in
+`.env` — defaults were picked away from common dev ports (`3306`/`5173`/`8080`)
+to avoid clashing with other services on a shared box (e.g. an EC2 dev VM).
+When the frontend is reached from a different host (not `localhost`), update
+`CORS_ALLOWED_ORIGINS` to include that origin, e.g.
+`http://<ec2-host>:${FRONTEND_PORT}`.
 
 The app starts with an empty portfolio. Add a transaction (or import a CSV) for
 a symbol and, with `TWELVEDATA_API_KEY` set, `HistoricalDataLoader` fetches real
@@ -81,7 +88,10 @@ Set in `.env` (see `.env.example`):
 | `SPRING_DATASOURCE_PASSWORD`   | —                                 | DB password (backend)                               |
 | `FINNHUB_API_KEY`              | *(empty)*                        | Finnhub API key — market endpoints degrade to DB fallback / empty results if unset |
 | `TWELVEDATA_API_KEY`           | *(empty)*                        | Twelve Data API key — required for price-history/risk charts on any symbol not already backfilled |
-| `CORS_ALLOWED_ORIGINS`         | `http://localhost:5173`          | Comma-separated origins allowed to call the API     |
+| `DB_PORT`                      | `33061`                          | Host port mapped to MySQL's `3306` in the container  |
+| `BACKEND_PORT`                 | `18080`                          | Host port mapped to the backend's `8080` in the container |
+| `FRONTEND_PORT`                | `18173`                          | Host port mapped to the frontend's `80` in the container |
+| `CORS_ALLOWED_ORIGINS`         | `http://localhost:18173`         | Comma-separated origins allowed to call the API directly (must include the host/port the frontend is actually served from) |
 | `VITE_GROQ_API_KEY`            | *(empty)*                        | Groq API key baked into the frontend build for the AI chatbot's LLM fallback |
 
 ## Development
