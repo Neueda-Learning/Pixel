@@ -26,9 +26,25 @@ The frontend uses [Vitest](https://vitest.dev/) with `jsdom` and
 component tests.
 
 ```bash
-npm run test         # run the full suite once (used by CI)
-npm run test:watch   # watch mode for local development
+npm run test           # run the full suite once (used by CI)
+npm run test:watch     # watch mode for local development
+npm run test:coverage  # run the suite with a v8 coverage report
 ```
+
+### Coverage
+
+`npm run test:coverage` uses [`@vitest/coverage-v8`](https://vitest.dev/guide/coverage.html) to
+produce:
+
+- a text summary printed to the terminal (lines/branches/functions/statements %)
+- an HTML report at `frontend/coverage/index.html` for browsing per-file line/branch hits
+
+Current coverage is ~43% (driven by the four test files above; components/pages without a
+`*.test.jsx` file show as uncovered). We'll cover more components/pages in future releases. The
+`coverage/` folder is generated output — it's listed in the root `.gitignore` and never
+committed. CI runs `npm run test:coverage` on every push/PR and uploads `frontend/coverage/` as
+the `frontend-coverage-report` build artifact so reviewers can
+download and browse it without it living in git.
 
 Test files live alongside the code they cover (`*.test.js` / `*.test.jsx`):
 
