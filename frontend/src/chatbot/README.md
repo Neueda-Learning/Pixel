@@ -1,6 +1,6 @@
-# Rule-Based Portfolio Chatbot
+# AI Portfolio Chatbot
 
-Reusable, production-ready chat module for a portfolio app.
+Reusable, production-ready AI chat module for a portfolio app.
 
 ## What this module includes
 
@@ -10,7 +10,8 @@ Reusable, production-ready chat module for a portfolio app.
 - User/bot bubbles, bot typing indicator, quick-reply chips
 - Enter to send, Shift+Enter newline, Escape to close
 - localStorage persistence for messages and session context
-- Deterministic rule-based bot engine (no LLM, no AI APIs)
+- AI-powered intent engine backed by Groq (`llama-3.1-8b-instant`) for open-ended questions,
+  with live portfolio context injected into every request
 - Guardrails: fallback, invalid/empty input, max message length
 - Live-data integration from portfolio/risk/market endpoints with graceful fallback on errors
 
@@ -57,12 +58,12 @@ Each intent entry in `chatbotRules.js` supports:
 - optional `detailTemplate`
 - optional `action` handler key
 
-Matcher strategy in `intentMatcher.js`:
+Matching strategy in `intentMatcher.js`:
 
 1. Normalize input (lowercase, trim, punctuation removal, compact spaces)
 2. Score regex matches and keyword overlap
 3. Pick highest-scoring intent
-4. Apply threshold, else fallback intent
+4. Apply threshold, else hand off to the Groq-backed AI fallback for an open-ended answer
 
 ## Add a new intent example
 

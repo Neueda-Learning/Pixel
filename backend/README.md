@@ -87,6 +87,13 @@ All values come from environment variables (see `application.yml` and root `.env
 > symbol. The free tier is rate-limited to 8 requests/minute, so `HistoricalDataLoader` and
 > `TransactionService` pace backfill calls 8 seconds apart.
 
+> **AI chatbot key lives here too, but the backend doesn't use it.** The root `.env` also defines
+> `VITE_GROQ_API_KEY` for the frontend's AI chatbot (Groq-backed — see
+> [frontend/README.md](../frontend/README.md#ai-chatbot)). It's consumed entirely client-side
+> (baked into the frontend build via `docker-compose.yml`/`frontend/Dockerfile`); the chatbot's
+> portfolio Q&A calls this backend's existing `/api/portfolio`, `/api/risk`, and `/api/market`
+> endpoints, but no backend code changes were needed to support it.
+
 ## Historical Data Loading
 
 On every startup, `HistoricalDataLoader` scans `SEED_DIR` for `<SYMBOL>.csv` files and
