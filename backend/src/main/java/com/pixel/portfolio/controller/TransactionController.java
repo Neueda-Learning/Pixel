@@ -1,5 +1,6 @@
 package com.pixel.portfolio.controller;
 
+import com.pixel.portfolio.dto.LotDto;
 import com.pixel.portfolio.dto.TransactionRequestDto;
 import com.pixel.portfolio.dto.TransactionResponseDto;
 import com.pixel.portfolio.service.TransactionService;
@@ -41,6 +42,15 @@ public class TransactionController {
     @Operation(summary = "Add a transaction", description = "Records a buy or sell. Holdings and portfolio value are derived from these automatically.")
     public TransactionResponseDto add(@Valid @RequestBody TransactionRequestDto request) {
         return transactionService.add(request);
+    }
+
+    @GetMapping("/lots")
+    @Operation(summary = "List open buy lots for a symbol", description = "Not-yet-fully-sold buy lots (price, date, remaining quantity) for the Sell form's buy-price picker.")
+    public List<LotDto> lots(
+            @Parameter(description = "Instrument symbol") @RequestParam String symbol,
+            @Parameter(description = "Excludes this transaction's own quantity from the remaining totals, for editing an existing SELL")
+            @RequestParam(required = false) Long excludeTransactionId) {
+        return transactionService.getOpenLots(symbol, excludeTransactionId);
     }
 
     @PostMapping("/import")

@@ -4,9 +4,9 @@ import './CsvImportModal.css'
 
 const EXPECTED_HEADERS = ['symbol', 'txtype', 'quantity', 'price', 'date']
 
-const SAMPLE_CSV = `symbol,txType,quantity,price,date
-AAPL,BUY,10,187.32,2026-01-15
-MSFT,SELL,5,412.50,2026-02-03
+const SAMPLE_CSV = `symbol,txType,quantity,price,date,buyPrice
+AAPL,BUY,10,187.32,2026-01-15,
+MSFT,SELL,5,412.50,2026-02-03,398.10
 `
 
 function parseCsv(text) {
@@ -42,7 +42,15 @@ function validateRow(raw) {
   }
 
   const price = Number(raw.price)
-  if (!raw.price || Number.isNaN(price) || price <= 0) errors.push('price must be positive')
+  if (!raw.price || Number.isNaN(price) || price <= 0) {
+    errors.push(txType === 'SELL' ? 'sell price must be positive' : 'price must be positive')
+  }
+
+  const buyPriceRaw = raw.buyprice?.trim()
+  const buyPrice = Number(buyPriceRaw)
+  if (txType === 'SELL' && (!buyPriceRaw || Number.isNaN(buyPrice) || buyPrice <= 0)) {
+    errors.push('buyPrice is required and must be positive for SELL rows')
+  }
 
   const dateMs = Date.parse(raw.date)
   if (!raw.date || Number.isNaN(dateMs)) errors.push('date is invalid')
@@ -50,7 +58,16 @@ function validateRow(raw) {
   return {
     valid: errors.length === 0,
     errors,
-    parsed: errors.length === 0 ? { symbol, txType, quantity, price, executedAt: new Date(dateMs).toISOString() } : null,
+    parsed: errors.length === 0
+      ? {
+          symbol,
+          txType,
+          quantity,
+          price,
+          buyPrice: txType === 'SELL' ? buyPrice : undefined,
+          executedAt: new Date(dateMs).toISOString(),
+        }
+      : null,
   }
 }
 
@@ -152,7 +169,7 @@ export default function CsvImportModal({ open, onClose, onImported }) {
           />
           <p>Drag and drop a CSV file here, or click to choose a file</p>
           <span className="text-muted" style={{ fontSize: 12 }}>
-            Columns: symbol, txType, quantity, price, date
+            Columns: symbol, txType, quantity, price, date, buyPrice (buyPrice required for SELL rows)
           </span>
         </div>
 
@@ -172,6 +189,7 @@ export default function CsvImportModal({ open, onClose, onImported }) {
                     <th>Symbol</th>
                     <th>Type</th>
                     <th className="num">Qty</th>
+                    <th className="num">Buy price</th>
                     <th className="num">Price</th>
                     <th>Date</th>
                     <th>Status</th>
@@ -184,6 +202,7 @@ export default function CsvImportModal({ open, onClose, onImported }) {
                       <td>{r.raw.symbol}</td>
                       <td>{r.raw.txtype}</td>
                       <td className="num tabular">{r.raw.quantity}</td>
+                      <td className="num tabular">{r.raw.txtype?.trim().toUpperCase() === 'SELL' ? r.raw.buyprice : '—'}</td>
                       <td className="num tabular">{r.raw.price}</td>
                       <td>{r.raw.date}</td>
                       <td>

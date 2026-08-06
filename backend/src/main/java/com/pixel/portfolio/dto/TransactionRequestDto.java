@@ -23,6 +23,14 @@ public class TransactionRequestDto {
     @Positive(message = "price must be positive")
     private BigDecimal price;
 
+    // Required only for SELL: the original price the shares were bought at (validated in TransactionService).
+    @Positive(message = "buyPrice must be positive")
+    private BigDecimal buyPrice;
+
+    // Optional for SELL: id of the specific open BUY lot to sell from (preferred over buyPrice — server derives
+    // the price and enforces the lot's remaining quantity). Falls back to buyPrice when absent (e.g. CSV import).
+    private Long buyTransactionId;
+
     @PositiveOrZero(message = "fees cannot be negative")
     private BigDecimal fees = BigDecimal.ZERO;
 
@@ -41,6 +49,10 @@ public class TransactionRequestDto {
     public void setQuantity(BigDecimal quantity) { this.quantity = quantity; }
     public BigDecimal getPrice() { return price; }
     public void setPrice(BigDecimal price) { this.price = price; }
+    public BigDecimal getBuyPrice() { return buyPrice; }
+    public void setBuyPrice(BigDecimal buyPrice) { this.buyPrice = buyPrice; }
+    public Long getBuyTransactionId() { return buyTransactionId; }
+    public void setBuyTransactionId(Long buyTransactionId) { this.buyTransactionId = buyTransactionId; }
     public BigDecimal getFees() { return fees; }
     public void setFees(BigDecimal fees) { this.fees = fees; }
     public Instant getExecutedAt() { return executedAt; }

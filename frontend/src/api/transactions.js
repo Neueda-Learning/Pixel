@@ -10,3 +10,6 @@ export const updateTransaction = (id, tx) => api.put(`/transactions/${id}`, tx).
 export const importTransactions = (txs) => api.post('/transactions/import', txs).then((r) => r.data)
 
 export const deleteTransaction = (id) => api.delete(`/transactions/${id}`)
+
+export const getOpenLots = (symbol, excludeTransactionId) =>
+  api.get('/transactions/lots', { params: { symbol, excludeTransactionId } }).then((r) => r.data)

@@ -1,5 +1,6 @@
 package com.pixel.portfolio.service;
 
+import com.pixel.portfolio.dto.LotDto;
 import com.pixel.portfolio.dto.TransactionRequestDto;
 import com.pixel.portfolio.dto.TransactionResponseDto;
 import com.pixel.portfolio.exception.BadRequestException;
@@ -19,9 +20,12 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @Service
 public class TransactionService {
@@ -83,6 +87,14 @@ public class TransactionService {
         tx.setTxType(txType);
         tx.setQuantity(request.getQuantity());
         tx.setPrice(request.getPrice());
+        if ("SELL".equals(txType)) {
+            SellPricing pricing = resolveSellPricing(symbol, request, id);
+            tx.setBuyPrice(pricing.buyPrice());
+            tx.setBuyTransactionId(pricing.buyTransactionId());
+        } else {
+            tx.setBuyPrice(null);
+            tx.setBuyTransactionId(null);
+        }
         tx.setFees(request.getFees() != null ? request.getFees() : BigDecimal.ZERO);
         if (request.getExecutedAt() != null) {
             tx.setExecutedAt(request.getExecutedAt());
@@ -110,10 +122,101 @@ public class TransactionService {
         tx.setTxType(txType);
         tx.setQuantity(request.getQuantity());
         tx.setPrice(request.getPrice());
+        if ("SELL".equals(txType)) {
+            SellPricing pricing = resolveSellPricing(symbol, request, null);
+            tx.setBuyPrice(pricing.buyPrice());
+            tx.setBuyTransactionId(pricing.buyTransactionId());
+        } else {
+            tx.setBuyPrice(null);
+            tx.setBuyTransactionId(null);
+        }
         tx.setFees(request.getFees() != null ? request.getFees() : BigDecimal.ZERO);
         tx.setExecutedAt(request.getExecutedAt() != null ? request.getExecutedAt() : Instant.now());
         tx.setNotes(request.getNotes());
         return transactionRepository.save(tx);
+    }
+
+    private record SellPricing(BigDecimal buyPrice, Long buyTransactionId) {}
+
+    /**
+     * Resolves the buy price for a SELL, preferring an explicitly selected open lot (buyTransactionId) —
+     * validated to belong to the same symbol and to have enough remaining quantity — over a manually
+     * supplied buyPrice (the CSV-import path, which has no lot picker).
+     */
+    private SellPricing resolveSellPricing(String symbol, TransactionRequestDto request, Long excludeTransactionId) {
+        if (request.getBuyTransactionId() != null) {
+            Transaction buyTx = transactionRepository.findById(request.getBuyTransactionId())
+                    .orElseThrow(() -> new BadRequestException("Selected buy lot not found"));
+            if (!buyTx.getSymbol().equalsIgnoreCase(symbol) || !"BUY".equalsIgnoreCase(buyTx.getTxType())) {
+                throw new BadRequestException("Selected buy lot does not match this symbol");
+            }
+            BigDecimal remaining = getOpenLots(symbol, excludeTransactionId).stream()
+                    .filter(l -> l.getTransactionId().equals(buyTx.getId()))
+                    .map(LotDto::getRemainingQuantity)
+                    .findFirst()
+                    .orElse(BigDecimal.ZERO);
+            if (request.getQuantity().compareTo(remaining) > 0) {
+                throw new BadRequestException(String.format(Locale.ROOT,
+                        "Cannot sell %s share(s) from this lot \u2014 only %s remaining.",
+                        request.getQuantity().stripTrailingZeros().toPlainString(),
+                        remaining.stripTrailingZeros().toPlainString()));
+            }
+            return new SellPricing(buyTx.getPrice(), buyTx.getId());
+        }
+        // Fallback (e.g. CSV import, no lot picker): require a manually supplied buy price.
+        if (request.getBuyPrice() == null) {
+            throw new BadRequestException("buyPrice is required for SELL transactions");
+        }
+        return new SellPricing(request.getBuyPrice(), null);
+    }
+
+    /**
+     * Open (not-yet-fully-sold) BUY lots for a symbol, oldest first, each with its remaining quantity.
+     * SELLs that reference a specific lot (buyTransactionId) draw from it first; any unassigned SELL
+     * quantity (e.g. CSV imports with only a buyPrice) is drawn FIFO from the oldest remaining lots.
+     */
+    public List<LotDto> getOpenLots(String symbolParam, Long excludeTransactionId) {
+        String symbol = symbolParam.trim().toUpperCase(Locale.ROOT);
+        List<Transaction> txs = transactionRepository.findAll().stream()
+                .filter(t -> t.getSymbol().equalsIgnoreCase(symbol))
+                .filter(t -> excludeTransactionId == null || !excludeTransactionId.equals(t.getId()))
+                .sorted(Comparator.comparing(Transaction::getExecutedAt).thenComparing(Transaction::getId))
+                .toList();
+
+        Map<Long, BigDecimal> remainingByLot = new LinkedHashMap<>();
+        for (Transaction t : txs) {
+            if ("BUY".equalsIgnoreCase(t.getTxType())) {
+                remainingByLot.put(t.getId(), t.getQuantity());
+            }
+        }
+        for (Transaction t : txs) {
+            if (!"SELL".equalsIgnoreCase(t.getTxType())) continue;
+            BigDecimal toConsume = t.getQuantity();
+            if (t.getBuyTransactionId() != null && remainingByLot.containsKey(t.getBuyTransactionId())) {
+                BigDecimal avail = remainingByLot.get(t.getBuyTransactionId());
+                BigDecimal used = toConsume.min(avail);
+                remainingByLot.put(t.getBuyTransactionId(), avail.subtract(used));
+                toConsume = toConsume.subtract(used);
+            }
+            for (Long lotId : remainingByLot.keySet()) {
+                if (toConsume.compareTo(BigDecimal.ZERO) <= 0) break;
+                BigDecimal avail = remainingByLot.get(lotId);
+                if (avail.compareTo(BigDecimal.ZERO) <= 0) continue;
+                BigDecimal used = toConsume.min(avail);
+                remainingByLot.put(lotId, avail.subtract(used));
+                toConsume = toConsume.subtract(used);
+            }
+        }
+
+        List<LotDto> lots = new ArrayList<>();
+        for (Transaction t : txs) {
+            if (!"BUY".equalsIgnoreCase(t.getTxType())) continue;
+            BigDecimal remaining = remainingByLot.getOrDefault(t.getId(), BigDecimal.ZERO);
+            if (remaining.compareTo(BigDecimal.ZERO) > 0) {
+                lots.add(new LotDto(t.getId(), t.getPrice(), t.getExecutedAt(), remaining));
+            }
+        }
+        return lots;
     }
 
     /** Rejects a SELL that would exceed the net shares currently held for the symbol (BUY total minus SELL total, excluding the transaction being edited). */
@@ -152,6 +255,6 @@ public class TransactionService {
 
     private TransactionResponseDto toDto(Transaction t) {
         return new TransactionResponseDto(t.getId(), t.getSymbol(), t.getTxType(), t.getQuantity(),
-                t.getPrice(), t.getFees(), t.getExecutedAt(), t.getNotes());
+                t.getPrice(), t.getBuyPrice(), t.getBuyTransactionId(), t.getFees(), t.getExecutedAt(), t.getNotes());
     }
 }
