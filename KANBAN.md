@@ -1,6 +1,51 @@
 # Kanban Board — Pixel Portfolio Manager
 
-Track what has shipped in **v1.0.0** and what is planned for future releases.
+Track what has shipped in **v1.0.0**, what shipped in **v2.0.0**, and what is planned for future
+releases.
+
+---
+
+## ✅ Done — v2.0.0 (cut from `develop`)
+
+### Epic 6 — Transactions Module Revamp
+| # | Feature | Commit | Date |
+|---|---------|--------|------|
+| 36 | Symbol autocomplete, live price indicator, CSV import, edit transaction, custom date range | `ff426be` | 2026-08-06 |
+| 37 | CSV import modal — drag-and-drop, sample download, icon actions | `debe6f3` | 2026-08-06 |
+| 38 | Reject SELL orders that exceed current holdings | `2cc23f5` | 2026-08-06 |
+| 39 | Manual buy/sell pricing with dates and lot-based FIFO sell picker | `417c3be` | 2026-08-06 |
+| 40 | Unit tests — `TransactionServiceTest` (lot pricing, FIFO fallback, import ordering) | `a9c4cc9` | 2026-08-06 |
+
+### Epic 7 — Live Data & UI Polish
+| # | Feature | Commit | Date |
+|---|---------|--------|------|
+| 41 | Portfolio-scoped historical data loading (Twelve Data backfill, no synthetic/demo data) | `8ba5ec8` | 2026-08-05 |
+| 42 | Gain/loss color-coded arrows across KPI cards and holdings table | `9da6d35` | 2026-08-05 |
+| 43 | Persistent footer, live stock ticker header, chart year-axis ticks | `67a4bd9` | 2026-08-05 |
+| 44 | Dashboard fixes — whole-number qty, top-holdings KPI list, scroll-to-top on route change | `28e3272` | 2026-08-06 |
+| 45 | Fix stock ticker items being unclickable (broken instrument-detail navigation) | `561a837` | 2026-08-06 |
+
+### Epic 8 — AI Chatbot
+| # | Feature | Commit | Date |
+|---|---------|--------|------|
+| 46 | AI chatbot widget (`frontend/src/chatbot/`) — rule-based intents + Groq LLM fallback, live portfolio/risk/market data context | `0d8bbf6` | 2026-08-06 |
+| 47 | Holdings CSV export and transactions/holdings table pagination | `0d8bbf6` | 2026-08-06 |
+| 48 | Chatbot documented in frontend/backend READMEs | `d439613` | 2026-08-06 |
+
+### Epic 9 — Testing, Coverage & CI
+| # | Feature | Commit | Date |
+|---|---------|--------|------|
+| 49 | Explicit CI test stage running on every pull request (not just `main`) | `b874bbb` | 2026-08-06 |
+| 50 | Full backend + frontend test suite (`TransactionServiceTest`, Vitest/RTL component tests) | `a9c4cc9` | 2026-08-06 |
+| 51 | jsdom pinned to 26.1.0 for Node 20 CI compatibility | `5c16800` | 2026-08-06 |
+| 52 | JaCoCo (backend) + `@vitest/coverage-v8` (frontend) coverage tooling, uploaded as CI artifacts | `491ded7` | 2026-08-06 |
+
+### Epic 10 — Security & Compliance Documentation
+| # | Feature | Commit | Date |
+|---|---------|--------|------|
+| 53 | `docs/COMPLIANCE.md` — US market regulatory/non-functional roadmap | `230400a` | 2026-08-06 |
+| 54 | `docs/SECURITY.md` — OWASP Top 10 threat map + required PR security notes | `71c080e` | 2026-08-06 |
+| 55 | Root `.env.example` with every variable actually read by `docker-compose.yml` | `64283e9` | 2026-08-06 |
 
 ---
 
@@ -67,13 +112,16 @@ Track what has shipped in **v1.0.0** and what is planned for future releases.
 
 | # | Feature | Priority | Notes |
 |---|---------|----------|-------|
-| 36 | User authentication (JWT / Spring Security) | High | Multi-user portfolios; currently single-user |
-| 37 | Portfolio benchmarking vs SPY | High | Show alpha vs index on performance chart |
-| 38 | Dividend tracking and yield calculation | Medium | Add `DIVIDEND` tx type + income metrics |
-| 39 | Watchlist — track symbols without holding them | Medium | Separate from portfolio holdings |
-| 40 | Price alerts (WebSocket or polling) | Medium | Notify when price crosses threshold |
-| 41 | CSV export — transactions and holdings | Medium | Download ledger as CSV |
-| 42 | Dark / light theme toggle | Low | Design tokens already in place |
-| 43 | Portfolio comparison (multiple portfolios) | Low | Requires auth first |
-| 44 | Migrate `ddl-auto: update` → Flyway migrations | Low | Safer schema management for production |
-| 45 | E2E tests (Playwright) | Low | Cover dashboard, add transaction, detail flows |
+| 56 | User authentication (JWT / Spring Security) | High | Multi-user portfolios; currently single-user, no auth on any endpoint (see `docs/SECURITY.md` A01/A07) |
+| 57 | TLS/HTTPS termination + encryption at rest | High | Backend and nginx both serve plain HTTP today; see `docs/SECURITY.md` A02, `docs/COMPLIANCE.md` |
+| 58 | Portfolio benchmarking vs SPY | High | Show alpha vs index on performance chart |
+| 59 | Dependency vulnerability scanning in CI | Medium | `npm audit` / OWASP Dependency-Check Maven plugin; see `docs/SECURITY.md` A06 |
+| 60 | Dividend tracking and yield calculation | Medium | Add `DIVIDEND` tx type + income metrics |
+| 61 | Watchlist — track symbols without holding them | Medium | Separate from portfolio holdings |
+| 62 | Price alerts (WebSocket or polling) | Medium | Notify when price crosses threshold |
+| 63 | Transaction ledger CSV export | Medium | Holdings CSV export shipped in v2.0.0 (`exportHoldingsCsv`); transactions history still lacks an export button |
+| 64 | Audit logging for transaction mutations | Medium | See `docs/SECURITY.md` A09 |
+| 65 | Dark / light theme toggle | Low | Design tokens already in place |
+| 66 | Portfolio comparison (multiple portfolios) | Low | Requires auth first |
+| 67 | Migrate `ddl-auto: update` → Flyway migrations | Low | Safer schema management for production |
+| 68 | E2E tests (Playwright) | Low | Cover dashboard, add transaction, detail flows |

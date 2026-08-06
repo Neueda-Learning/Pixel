@@ -89,15 +89,21 @@ RiskService.getRisk(symbol)
   └── recommendation: BUY / HOLD / AVOID based on rule thresholds
 ```
 
-## Historical Data Seed
+## Historical Data Loading
 
-`HistoricalDataLoader` (runs once at startup via `ApplicationRunner`):
-1. Scans `SEED_DIR` for `<SYMBOL>.csv` files.
-2. For each CSV whose symbol isn't already loaded, bulk-inserts into `price_history`.
-3. For any of the 25 known demo symbols still missing data, generates ~2 years of
-   synthetic random-walk prices so the app is functional without real data.
+`HistoricalDataLoader` (runs once at startup via `CommandLineRunner`):
+1. Derives the list of symbols actually held in the portfolio from the `transaction` table
+   (`TransactionRepository.findDistinctSymbols()`) — no hardcoded demo symbol list.
+2. For any of those symbols still missing `price_history` rows, fetches real daily OHLCV data
+   from the Twelve Data API (`TwelveDataHistoricalService`) and persists it, pacing calls 8
+   seconds apart to respect the free tier's 8 requests/minute limit.
+3. Adding a brand-new symbol via `TransactionService.add`/`importAll` triggers the same
+   on-demand backfill immediately, without waiting for a restart.
 
-Synthetic data is clearly logged as `[SYNTHETIC]` and is intended for demos only.
+CSVs dropped into `SEED_DIR` (`infra/db/seed/<SYMBOL>.csv`) are still picked up as an optional,
+faster alternative to the live API for any symbol not yet in `price_history` — useful for loading
+real datasets in bulk (e.g. from Kaggle) — but this isn't required; without `TWELVEDATA_API_KEY`
+or seed CSVs, portfolio symbols simply have no chart data until one of those is provided.
 
 ## Caching Strategy
 
@@ -109,9 +115,13 @@ Synthetic data is clearly logged as `[SYNTHETIC]` and is intended for demos only
 
 ## CI / CD
 
-GitHub Actions (`.github/workflows/`) runs on every push:
-- Backend: `mvn test` (Java 17)
-- Frontend: `npm ci && npm run build` (Node 20)
+GitHub Actions (`.github/workflows/ci.yml`) runs on every push to `main` and on every pull
+request:
+- Backend: `mvn -B test` (Java 17) with a JaCoCo coverage report, then `mvn -B package`;
+  Surefire reports are uploaded as a build artifact.
+- Frontend: `npm install` then `npm run test:coverage` (Vitest + v8 coverage), then `npm run
+  build`; the coverage report is uploaded as a build artifact.
+- Docker (main only, after backend + frontend pass): sanity-builds both Docker images.
 
 Docker images are built with multi-stage `Dockerfile`s in `backend/` and `frontend/`.
 `docker-compose.yml` at the repo root wires all three services (db, backend, frontend).
