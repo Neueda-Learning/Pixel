@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import useApi from '../hooks/useApi'
 import { getTransactions, addTransaction, updateTransaction, deleteTransaction } from '../api/transactions'
 import TransactionForm from '../components/TransactionForm'
@@ -18,6 +18,7 @@ export default function Transactions() {
   const [editing, setEditing] = useState(null)
   const [saving, setSaving] = useState(false)
   const [csvOpen, setCsvOpen] = useState(false)
+  const [historyPage, setHistoryPage] = useState(1)
 
   const isCustomRange = period === 'Custom'
   const customRangeActive = isCustomRange && Boolean(dateRange.from && dateRange.to)
@@ -40,9 +41,25 @@ export default function Transactions() {
     }
   }
 
-  const handleDelete = async (id) => {
+  const sortedTransactions = useMemo(
+    () => [...(tx.data ?? [])].sort((a, b) => new Date(b.executedAt) - new Date(a.executedAt)),
+    [tx.data],
+  )
+
+  useEffect(() => {
+    setHistoryPage(1)
+  }, [sortedTransactions.length, period, dateRange.from, dateRange.to])
+
+  const handleDelete = async (transaction) => {
+    if (!transaction?.id) return
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete this ${transaction.txType} transaction for ${transaction.symbol}?`,
+    )
+    if (!confirmed) return
+
     try {
-      await deleteTransaction(id)
+      await deleteTransaction(transaction.id)
       tx.reload()
     } catch (err) {
       setFormError(extractErrorMessage(err, 'Could not delete transaction.'))
@@ -126,9 +143,12 @@ export default function Transactions() {
           />
         ) : (
           <TransactionsTable
-            transactions={[...tx.data].sort((a, b) => new Date(b.executedAt) - new Date(a.executedAt))}
+            transactions={sortedTransactions}
             onDelete={handleDelete}
             onEdit={setEditing}
+            page={historyPage}
+            pageSize={10}
+            onPageChange={setHistoryPage}
           />
         )}
       </section>
