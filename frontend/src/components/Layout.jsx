@@ -4,6 +4,7 @@ import Sidebar from './Sidebar'
 import Topbar from './Topbar'
 import StockTicker from './StockTicker'
 import Footer from './Footer'
+import ChatPanel from './ChatPanel'
 import './Layout.css'
 
 function titleFor(pathname, params) {
@@ -30,6 +31,7 @@ export default function Layout() {
         </main>
         <Footer />
       </div>
+      <ChatPanel />
     </div>
   )
 }
