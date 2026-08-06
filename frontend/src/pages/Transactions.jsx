@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import useApi from '../hooks/useApi'
-import { getTransactions, addTransaction, deleteTransaction } from '../api/transactions'
+import { getTransactions, addTransaction, updateTransaction, deleteTransaction } from '../api/transactions'
 import TransactionForm from '../components/TransactionForm'
 import TransactionsTable from '../components/TransactionsTable'
+import EditTransactionModal from '../components/EditTransactionModal'
+import CsvImportModal from '../components/CsvImportModal'
 import PeriodToggle from '../components/PeriodToggle'
 import LoadingState from '../components/LoadingState'
 import ErrorState, { extractErrorMessage } from '../components/ErrorState'
@@ -10,10 +12,19 @@ import './Transactions.css'
 
 export default function Transactions() {
   const [period, setPeriod] = useState('ALL')
+  const [dateRange, setDateRange] = useState({ from: '', to: '' })
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState(null)
+  const [editing, setEditing] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [csvOpen, setCsvOpen] = useState(false)
 
-  const tx = useApi(() => getTransactions(period), [period])
+  const isCustomRange = period === 'Custom'
+  const customRangeActive = isCustomRange && Boolean(dateRange.from && dateRange.to)
+  const tx = useApi(
+    () => getTransactions(isCustomRange ? 'ALL' : period, customRangeActive ? dateRange : {}),
+    [period, customRangeActive, dateRange.from, dateRange.to]
+  )
 
   const handleAdd = async (payload) => {
     setSubmitting(true)
@@ -38,6 +49,21 @@ export default function Transactions() {
     }
   }
 
+  const handleSaveEdit = async (id, payload) => {
+    setSaving(true)
+    try {
+      await updateTransaction(id, payload)
+      setEditing(null)
+      tx.reload()
+    } catch (err) {
+      setFormError(extractErrorMessage(err, 'Could not update transaction.'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const clearDateRange = () => setDateRange({ from: '', to: '' })
+
   return (
     <div className="transactions-page">
       <section className="card card-pad">
@@ -46,6 +72,9 @@ export default function Transactions() {
             <div className="card-title">Add transaction</div>
             <div className="card-subtitle">Record a buy or sell — holdings are derived automatically</div>
           </div>
+          <button type="button" className="btn" onClick={() => setCsvOpen(true)}>
+            Import from CSV
+          </button>
         </div>
         <TransactionForm onSubmit={handleAdd} submitting={submitting} />
         {formError && (
@@ -60,7 +89,33 @@ export default function Transactions() {
           <div>
             <div className="card-title">History</div>
           </div>
-          <PeriodToggle options={['3M', '6M', '1Y', 'ALL']} value={period} onChange={setPeriod} />
+          <div className="tx-history-filters">
+            <PeriodToggle options={['3M', '6M', '1Y', 'ALL', 'Custom']} value={period} onChange={setPeriod} />
+            {isCustomRange && (
+              <div className="tx-date-range">
+                <input
+                  type="date"
+                  className="input"
+                  value={dateRange.from}
+                  onChange={(e) => setDateRange((r) => ({ ...r, from: e.target.value }))}
+                  aria-label="From date"
+                />
+                <span className="text-muted">to</span>
+                <input
+                  type="date"
+                  className="input"
+                  value={dateRange.to}
+                  onChange={(e) => setDateRange((r) => ({ ...r, to: e.target.value }))}
+                  aria-label="To date"
+                />
+                {customRangeActive && (
+                  <button type="button" className="btn btn-ghost" onClick={clearDateRange}>
+                    Clear
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
         {tx.loading ? (
           <LoadingState height={240} />
@@ -73,9 +128,19 @@ export default function Transactions() {
           <TransactionsTable
             transactions={[...tx.data].sort((a, b) => new Date(b.executedAt) - new Date(a.executedAt))}
             onDelete={handleDelete}
+            onEdit={setEditing}
           />
         )}
       </section>
+
+      <EditTransactionModal
+        transaction={editing}
+        onSave={handleSaveEdit}
+        onClose={() => setEditing(null)}
+        saving={saving}
+      />
+
+      <CsvImportModal open={csvOpen} onClose={() => setCsvOpen(false)} onImported={tx.reload} />
     </div>
   )
 }

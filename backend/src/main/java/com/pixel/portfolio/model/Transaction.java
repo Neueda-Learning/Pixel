@@ -12,7 +12,9 @@ public class Transaction {
     private String symbol;
     private String txType;          // BUY / SELL
     private BigDecimal quantity;
-    private BigDecimal price;
+    private BigDecimal price;       // BUY: price paid; SELL: price sold at
+    private BigDecimal buyPrice;    // SELL only: original price the shares were bought at
+    private Long buyTransactionId;  // SELL only: id of the specific BUY lot sold from
     private BigDecimal fees = BigDecimal.ZERO;
     private Instant executedAt = Instant.now();
     private String notes;
@@ -27,6 +29,10 @@ public class Transaction {
     public void setQuantity(BigDecimal q) { this.quantity = q; }
     public BigDecimal getPrice() { return price; }
     public void setPrice(BigDecimal p) { this.price = p; }
+    public BigDecimal getBuyPrice() { return buyPrice; }
+    public void setBuyPrice(BigDecimal b) { this.buyPrice = b; }
+    public Long getBuyTransactionId() { return buyTransactionId; }
+    public void setBuyTransactionId(Long id) { this.buyTransactionId = id; }
     public BigDecimal getFees() { return fees; }
     public void setFees(BigDecimal f) { this.fees = f; }
     public Instant getExecutedAt() { return executedAt; }

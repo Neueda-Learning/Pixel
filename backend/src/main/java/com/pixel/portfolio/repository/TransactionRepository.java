@@ -9,6 +9,8 @@ import java.util.List;
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
     List<Transaction> findByExecutedAtAfter(Instant since);   // powers 3M / 6M history
 
+    List<Transaction> findByExecutedAtBetween(Instant start, Instant end); // powers custom date range filter
+
     @Query("select distinct t.symbol from Transaction t order by t.symbol")
     List<String> findDistinctSymbols();
 }
