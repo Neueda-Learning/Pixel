@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { getQuote } from '../api/market'
 import { formatCurrency, formatPercent } from '../utils/format'
 import './StockTicker.css'
@@ -44,19 +43,18 @@ export default function StockTicker() {
         {track.map(({ symbol, quote }, i) => {
           const positive = (quote?.changePercent ?? 0) >= 0
           return (
-            <Link
-              to={`/instruments/${symbol}`}
+            // Temporarily unclickable: portfolio-only price history breaks for non-portfolio ticker symbols.
+            <div
               className="stock-ticker-item"
               key={`${symbol}-${i}`}
               aria-hidden={i >= items.length}
-              tabIndex={i >= items.length ? -1 : undefined}
             >
               <span className="stock-ticker-symbol">{symbol}</span>
               <span className="stock-ticker-price">{quote ? formatCurrency(quote.current) : '—'}</span>
               <span className={`stock-ticker-change ${positive ? 'text-positive' : 'text-negative'}`}>
                 {quote ? `${positive ? '▲' : '▼'} ${formatPercent(quote.changePercent)}` : ''}
               </span>
-            </Link>
+            </div>
           )
         })}
       </div>

@@ -108,9 +108,22 @@ cd backend
 mvn test
 ```
 
-Tests cover `PortfolioService` (average-cost calculations, buy/sell position tracking,
-summary aggregation) and `ChatBotService` (intent matching and reply formatting against
-real service data).
+The suite uses JUnit 5 + Mockito (`spring-boot-starter-test`) across four classes in
+`src/test/java/com/pixel/portfolio/`:
+
+| Test class | Location | Covers |
+|------------|----------|--------|
+| `PortfolioServiceTest` | `service/` | Average-cost calculations, buy/sell position tracking, and holdings summary aggregation |
+| `TransactionServiceTest` | `service/` | Transaction CRUD, lot-based SELL pricing (`buyTransactionId`/`buyPrice` resolution), FIFO fallback for unassigned sells, open-lot remaining-quantity tracking, CSV/batch import ordering, and validation errors (over-selling, invalid lot references, missing lot/price) |
+| `RiskMathTest` | `service/risk/` | Pure statistical calculations — volatility, Sharpe ratio, beta, max drawdown |
+| `ChatBotServiceTest` | `service/` | Intent matching and reply formatting against real `PortfolioService`/`RiskService` data |
+
+`TransactionServiceTest` mocks `TransactionRepository`, `InstrumentRepository`,
+`PriceHistoryRepository`, and `TwelveDataHistoricalService` with Mockito
+(`@ExtendWith(MockitoExtension.class)`, `@Mock`/`@InjectMocks`) so it runs without a database.
+
+CI (`.github/workflows/ci.yml`) runs `mvn -B test` on every push to `main` and on every pull
+request, uploading the Surefire reports as a build artifact.
 
 ## Key Design Decisions
 
