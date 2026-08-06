@@ -19,6 +19,29 @@ npm run dev        # http://localhost:5173, proxies /api to localhost:8080
 npm run build       # production build to dist/
 ```
 
+## Testing
+
+The frontend uses [Vitest](https://vitest.dev/) with `jsdom` and
+[React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) for
+component tests.
+
+```bash
+npm run test         # run the full suite once (used by CI)
+npm run test:watch   # watch mode for local development
+```
+
+Test files live alongside the code they cover (`*.test.js` / `*.test.jsx`):
+
+| Test file | Covers |
+|-----------|--------|
+| `src/utils/format.test.js` | Pure formatter functions — currency, percent, ratio, number, and date formatting, including the `'—'` placeholder for null/undefined input |
+| `src/components/TransactionForm.test.jsx` | Add-transaction form: BUY vs SELL field visibility, fetching/listing open lots for a symbol, validation (missing lot, quantity exceeding remaining lot quantity), and the submitted payload shape for both BUY and SELL |
+| `src/components/EditTransactionModal.test.jsx` | Edit-transaction modal: pre-filling values from the transaction being edited, fetching open lots excluding the transaction itself, lot-based quantity validation, and the submitted payload/id on save |
+| `src/components/CsvImportModal.test.jsx` | CSV import: header validation, per-row validation (invalid type, missing/invalid `buyPrice` on SELL rows), the valid-row count, and submitting only the valid parsed rows to the import API |
+
+External calls (`src/api/*`) are mocked with `vi.mock` so tests run fully offline. CI
+(`.github/workflows/ci.yml`) runs `npm run test` on every push to `main` and on every pull request.
+
 ## Progress
 
 - ✅ Project scaffold: Vite + React Router, design tokens (`styles/theme.css`,
