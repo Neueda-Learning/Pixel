@@ -58,6 +58,29 @@ Test files live alongside the code they cover (`*.test.js` / `*.test.jsx`):
 External calls (`src/api/*`) are mocked with `vi.mock` so tests run fully offline. CI
 (`.github/workflows/ci.yml`) runs `npm run test` on every push to `main` and on every pull request.
 
+## AI Chatbot
+
+A floating AI chat widget (`src/chatbot/`, mounted via `ChatWidget` in `Layout.jsx` so it's
+available on every page) answers portfolio questions using live account data — portfolio summary,
+top holdings, risk analysis, market news, and rebalance suggestions — pulled from the existing
+`portfolio`/`risk`/`market` API modules (`chatbot/services/chatDataService.js`; no new backend
+endpoints were added). For open-ended questions, `chatDataService.js`'s `answerGeneralQuestion()`
+calls the [Groq](https://groq.com/) chat completions API (`https://api.groq.com/openai/v1/chat/completions`,
+model `llama-3.1-8b-instant`) directly from the browser, passing a system prompt ("Pixel AI, an
+educational portfolio assistant") plus a live portfolio snapshot (total value, gain/loss, top
+holdings) as context.
+
+Other chatbot behavior: localStorage persistence of messages/session state
+(`chatbot/storage.js`), max message length + empty-input guardrails, quick-reply starter chips,
+and "yes/more details" follow-ups that expand on the last answer. See
+[src/chatbot/README.md](src/chatbot/README.md) for the full module guide, and
+`chatEngine.test.js` / `intentMatcher.test.js` for test coverage.
+
+**Environment variable:** `VITE_GROQ_API_KEY` (set in the root `.env`, passed through as a Docker
+build arg in `docker-compose.yml`/`frontend/Dockerfile`). Since it's a `VITE_`-prefixed var, it's
+baked into the client bundle at build time — the Groq key is visible to anyone who inspects the
+built frontend.
+
 ## Progress
 
 - ✅ Project scaffold: Vite + React Router, design tokens (`styles/theme.css`,
@@ -99,6 +122,9 @@ External calls (`src/api/*`) are mocked with `vi.mock` so tests run fully offlin
   above the `Topbar` on every page via `Layout`.
 - ✅ Persistent footer — `Footer`, a fixed copyright bar shown on every page
   via `Layout`.
+- ✅ AI chatbot — floating `ChatWidget` answering portfolio questions over
+  live data, backed by Groq AI for open-ended questions, mounted globally via
+  `Layout`. See the "AI Chatbot" section above.
 
 > **Note:** Chart data depends on the backend having a `TWELVEDATA_API_KEY`
 > configured (see [backend/README.md](../backend/README.md#configuration)).
@@ -119,3 +145,5 @@ The frontend is feature-complete against the backend API contract:
 - Responsive app shell (collapsible mobile sidebar, live stock ticker header,
   persistent footer) and shared design tokens for consistent theming across
   all pages.
+- **AI chatbot** — floating widget answering portfolio questions over live
+  data, backed by Groq AI (see "AI Chatbot" above).
