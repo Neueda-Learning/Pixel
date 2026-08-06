@@ -39,10 +39,17 @@ jobs:
         if: steps.check.outputs.exists == 'true'
         working-directory: frontend
         run: npm install
-      - name: Run frontend tests
+      - name: Run frontend tests with coverage
         if: steps.check.outputs.exists == 'true'
         working-directory: frontend
-        run: npm run test --if-present
+        run: npm run test:coverage --if-present
+      - name: Upload frontend coverage report
+        if: always() && steps.check.outputs.exists == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage-report
+          path: frontend/coverage/
+          retention-days: 7
       - name: Build frontend
         if: steps.check.outputs.exists == 'true'
         working-directory: frontend
