@@ -66,6 +66,8 @@
 
   --sidebar-width: 232px;
   --topbar-height: 64px;
+  --footer-height: 44px;
+  --ticker-height: 36px;
 
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }

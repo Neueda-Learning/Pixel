@@ -1,55 +1,64 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { getQuote } from '../api/market'
+import { formatCurrency, formatPercent } from '../utils/format'
 import './StockTicker.css'
 
-// Matches the symbols available in the transaction form
-const TICKER_SYMBOLS = [
-  'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'JPM', 'V', 'NFLX',
-  'JNJ', 'XOM', 'MA', 'PG', 'BAC',
-  'SPY', 'QQQ', 'VTI', 'VOO', 'GLD',
+const SYMBOLS = [
+  'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'NFLX',
+  'JPM', 'V', 'DIS', 'KO', 'PEP', 'WMT', 'BA',
 ]
+const REFRESH_MS = 30_000 // matches the backend's quote cache TTL
 
 export default function StockTicker() {
-  const [quotes, setQuotes] = useState([])
-  const intervalRef = useRef(null)
-
-  const fetchQuotes = async () => {
-    const results = await Promise.allSettled(TICKER_SYMBOLS.map((s) => getQuote(s).then((q) => ({ symbol: s, ...q }))))
-    const data = results
-      .filter((r) => r.status === 'fulfilled' && r.value?.currentPrice)
-      .map((r) => r.value)
-    if (data.length > 0) setQuotes(data)
-  }
+  const [quotes, setQuotes] = useState({})
 
   useEffect(() => {
-    fetchQuotes()
-    intervalRef.current = setInterval(fetchQuotes, 30000)
-    return () => clearInterval(intervalRef.current)
+    let cancelled = false
+
+    const load = () => {
+      SYMBOLS.forEach((symbol) => {
+        getQuote(symbol)
+          .then((q) => {
+            if (!cancelled) setQuotes((prev) => ({ ...prev, [symbol]: q }))
+          })
+          .catch(() => {}) // one symbol failing shouldn't blank the rest of the ticker
+      })
+    }
+
+    load()
+    const id = setInterval(load, REFRESH_MS)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
   }, [])
 
-  if (quotes.length === 0) return null
-
-  const items = [...quotes, ...quotes] // duplicate for seamless loop
+  const items = SYMBOLS.map((symbol) => ({ symbol, quote: quotes[symbol] }))
+  // Duplicated so the CSS marquee can loop seamlessly at -50%.
+  const track = [...items, ...items]
 
   return (
-    <div className="stock-ticker" aria-label="Live stock prices">
-      <div className="ticker-label">LIVE</div>
-      <div className="ticker-track">
-        <div className="ticker-inner">
-          {items.map((q, i) => {
-            const change = q.changePercent ?? 0
-            const positive = change >= 0
-            return (
-              <span key={i} className={`ticker-item ${positive ? 'pos' : 'neg'}`}>
-                <span className="ticker-symbol">{q.symbol}</span>
-                <span className="ticker-price">${Number(q.currentPrice).toFixed(2)}</span>
-                <span className="ticker-change">
-                  {positive ? '▲' : '▼'} {Math.abs(change).toFixed(2)}%
-                </span>
+    <div className="stock-ticker" aria-label="Live stock ticker">
+      <div className="stock-ticker-track">
+        {track.map(({ symbol, quote }, i) => {
+          const positive = (quote?.changePercent ?? 0) >= 0
+          return (
+            <Link
+              to={`/instruments/${symbol}`}
+              className="stock-ticker-item"
+              key={`${symbol}-${i}`}
+              aria-hidden={i >= items.length}
+              tabIndex={i >= items.length ? -1 : undefined}
+            >
+              <span className="stock-ticker-symbol">{symbol}</span>
+              <span className="stock-ticker-price">{quote ? formatCurrency(quote.current) : '—'}</span>
+              <span className={`stock-ticker-change ${positive ? 'text-positive' : 'text-negative'}`}>
+                {quote ? `${positive ? '▲' : '▼'} ${formatPercent(quote.changePercent)}` : ''}
               </span>
-            )
-          })}
-        </div>
+            </Link>
+          )
+        })}
       </div>
     </div>
   )

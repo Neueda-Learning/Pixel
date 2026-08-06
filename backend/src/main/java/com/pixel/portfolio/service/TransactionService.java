@@ -4,10 +4,14 @@ import com.pixel.portfolio.dto.TransactionRequestDto;
 import com.pixel.portfolio.dto.TransactionResponseDto;
 import com.pixel.portfolio.exception.ResourceNotFoundException;
 import com.pixel.portfolio.model.Instrument;
+import com.pixel.portfolio.model.PriceHistory;
 import com.pixel.portfolio.model.Transaction;
 import com.pixel.portfolio.repository.InstrumentRepository;
+import com.pixel.portfolio.repository.PriceHistoryRepository;
 import com.pixel.portfolio.repository.TransactionRepository;
 import com.pixel.portfolio.util.PeriodUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -23,13 +27,21 @@ import java.util.Locale;
 @Service
 public class TransactionService {
 
+    private static final Logger log = LoggerFactory.getLogger(TransactionService.class);
+
     private final TransactionRepository transactionRepository;
     private final InstrumentRepository instrumentRepository;
+    private final PriceHistoryRepository priceHistoryRepository;
+    private final TwelveDataHistoricalService twelveDataService;
 
     public TransactionService(TransactionRepository transactionRepository,
-                               InstrumentRepository instrumentRepository) {
+                               InstrumentRepository instrumentRepository,
+                               PriceHistoryRepository priceHistoryRepository,
+                               TwelveDataHistoricalService twelveDataService) {
         this.transactionRepository = transactionRepository;
         this.instrumentRepository = instrumentRepository;
+        this.priceHistoryRepository = priceHistoryRepository;
+        this.twelveDataService = twelveDataService;
     }
 
     public List<TransactionResponseDto> list(String period) {
@@ -47,6 +59,20 @@ public class TransactionService {
         String symbol = request.getSymbol().trim().toUpperCase(Locale.ROOT);
         if (!instrumentRepository.existsById(symbol)) {
             instrumentRepository.save(new Instrument(symbol, symbol, "STOCK", "USD"));
+        }
+        // New symbol added to the portfolio: fetch its real historical chart data from
+        // Twelve Data right away (instead of waiting for the next app restart) so the
+        // instrument detail page has a chart immediately.
+        if (priceHistoryRepository.countBySymbol(symbol) == 0 && twelveDataService.hasApiKey()) {
+            try {
+                List<PriceHistory> rows = twelveDataService.fetchDailyHistory(symbol);
+                if (!rows.isEmpty()) {
+                    priceHistoryRepository.saveAll(rows);
+                    log.info("Loaded {} historical row(s) for new portfolio symbol {} from Twelve Data", rows.size(), symbol);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to backfill historical data for {}: {}", symbol, e.getMessage());
+            }
         }
         Transaction tx = new Transaction();
         tx.setSymbol(request.getSymbol().trim().toUpperCase(Locale.ROOT));
