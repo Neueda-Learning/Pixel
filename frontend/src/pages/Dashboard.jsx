@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import useApi from '../hooks/useApi'
 import { getPortfolioSummary, getPortfolioPerformance, getHoldings } from '../api/portfolio'
 import { getTransactions } from '../api/transactions'
@@ -15,6 +15,8 @@ import './Dashboard.css'
 
 export default function Dashboard() {
   const [period, setPeriod] = useState('6M')
+  const [holdingsPage, setHoldingsPage] = useState(1)
+  const [recentPage, setRecentPage] = useState(1)
 
   const summary = useApi(getPortfolioSummary, [])
   const performance = useApi(() => getPortfolioPerformance(period), [period])
@@ -23,6 +25,61 @@ export default function Dashboard() {
 
   const s = summary.data
   const totalPositive = (s?.totalGainLoss ?? 0) >= 0
+
+  const sortedHoldings = useMemo(
+    () => [...(holdings.data ?? [])].sort((a, b) => b.marketValue - a.marketValue),
+    [holdings.data],
+  )
+
+  const sortedRecentTransactions = useMemo(
+    () => [...(recentTx.data ?? [])].sort((a, b) => new Date(b.executedAt) - new Date(a.executedAt)),
+    [recentTx.data],
+  )
+
+  useEffect(() => {
+    setHoldingsPage(1)
+  }, [sortedHoldings.length])
+
+  useEffect(() => {
+    setRecentPage(1)
+  }, [sortedRecentTransactions.length])
+
+  const exportHoldingsCsv = () => {
+    if (!sortedHoldings.length) return
+
+    const headers = ['Symbol', 'Name', 'Quantity', 'Avg Cost', 'Current Price', 'Market Value', 'Gain/Loss', 'Gain/Loss %']
+    const rows = sortedHoldings.map((h) => [
+      h.symbol,
+      h.name,
+      h.quantity,
+      h.avgCost,
+      h.currentPrice,
+      h.marketValue,
+      h.gainLoss,
+      h.gainLossPct,
+    ])
+
+    const csv = [headers, ...rows]
+      .map((row) =>
+        row
+          .map((cell) => {
+            const text = String(cell ?? '')
+            return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
+          })
+          .join(','),
+      )
+      .join('\n')
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `holdings-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <div className="dashboard">
@@ -46,10 +103,23 @@ export default function Dashboard() {
             <KpiCard
               label="Total gain / loss"
               value={formatCurrency(s.totalGainLoss)}
+              valuePositive={totalPositive}
               delta={formatPercent(s.totalGainLossPct, { signed: true })}
               deltaPositive={totalPositive}
             />
-            <KpiCard label="Holdings" value={s.holdingsCount} />
+            <KpiCard
+              label="Holdings"
+              value={s.holdingsCount}
+              list={
+                holdings.data && holdings.data.length > 0
+                  ? sortedHoldings.map((h) => ({
+                        symbol: h.symbol,
+                        positive: h.gainLoss >= 0,
+                        changeLabel: formatPercent(h.gainLossPct, { signed: true }),
+                      }))
+                  : undefined
+              }
+            />
           </>
         )}
       </section>
@@ -73,7 +143,7 @@ export default function Dashboard() {
           ) : performance.data.length === 0 ? (
             <p className="text-muted">No performance history yet.</p>
           ) : (
-            <TimeSeriesChart data={performance.data} valueFormatter={formatCurrency} color="var(--chart-1)" />
+            <TimeSeriesChart data={performance.data} valueFormatter={formatCurrency} />
           )}
         </div>
 
@@ -102,6 +172,9 @@ export default function Dashboard() {
             <div className="card-title">Holdings</div>
             <div className="card-subtitle">Derived from your transaction history</div>
           </div>
+          <button type="button" className="btn btn-primary" onClick={exportHoldingsCsv} disabled={!sortedHoldings.length}>
+            Export CSV
+          </button>
         </div>
         {holdings.loading ? (
           <LoadingState height={200} />
@@ -111,7 +184,12 @@ export default function Dashboard() {
             onRetry={holdings.reload}
           />
         ) : (
-          <HoldingsTable holdings={holdings.data} />
+          <HoldingsTable
+            holdings={sortedHoldings}
+            page={holdingsPage}
+            pageSize={6}
+            onPageChange={setHoldingsPage}
+          />
         )}
       </section>
 
@@ -130,10 +208,11 @@ export default function Dashboard() {
           />
         ) : (
           <TransactionsTable
-            transactions={[...recentTx.data]
-              .sort((a, b) => new Date(b.executedAt) - new Date(a.executedAt))
-              .slice(0, 5)}
+            transactions={sortedRecentTransactions}
             compact
+            page={recentPage}
+            pageSize={5}
+            onPageChange={setRecentPage}
           />
         )}
       </section>

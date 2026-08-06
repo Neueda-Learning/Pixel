@@ -12,5 +12,10 @@ public class MarketDataConfig {
     public RestClient finnhubRestClient(@Value("${finnhub.base-url}") String baseUrl) {
         return RestClient.builder().baseUrl(baseUrl).build();
     }
+
+    @Bean
+    public RestClient twelveDataRestClient(@Value("${twelvedata.base-url}") String baseUrl) {
+        return RestClient.builder().baseUrl(baseUrl).build();
+    }
 }
 

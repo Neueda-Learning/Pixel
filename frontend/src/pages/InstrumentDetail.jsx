@@ -60,7 +60,6 @@ export default function InstrumentDetail() {
           <TimeSeriesChart
             data={prices.data.map((p) => ({ date: p.date, value: p.close }))}
             valueFormatter={formatCurrency}
-            color="var(--chart-1)"
             height={320}
           />
         )}

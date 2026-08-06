@@ -9,6 +9,8 @@ public class TransactionResponseDto {
     private String txType;
     private BigDecimal quantity;
     private BigDecimal price;
+    private BigDecimal buyPrice;
+    private Long buyTransactionId;
     private BigDecimal fees;
     private Instant executedAt;
     private String notes;
@@ -16,12 +18,14 @@ public class TransactionResponseDto {
     public TransactionResponseDto() {}
 
     public TransactionResponseDto(Long id, String symbol, String txType, BigDecimal quantity, BigDecimal price,
-                                   BigDecimal fees, Instant executedAt, String notes) {
+                                   BigDecimal buyPrice, Long buyTransactionId, BigDecimal fees, Instant executedAt, String notes) {
         this.id = id;
         this.symbol = symbol;
         this.txType = txType;
         this.quantity = quantity;
         this.price = price;
+        this.buyPrice = buyPrice;
+        this.buyTransactionId = buyTransactionId;
         this.fees = fees;
         this.executedAt = executedAt;
         this.notes = notes;
@@ -37,6 +41,10 @@ public class TransactionResponseDto {
     public void setQuantity(BigDecimal quantity) { this.quantity = quantity; }
     public BigDecimal getPrice() { return price; }
     public void setPrice(BigDecimal price) { this.price = price; }
+    public BigDecimal getBuyPrice() { return buyPrice; }
+    public void setBuyPrice(BigDecimal buyPrice) { this.buyPrice = buyPrice; }
+    public Long getBuyTransactionId() { return buyTransactionId; }
+    public void setBuyTransactionId(Long buyTransactionId) { this.buyTransactionId = buyTransactionId; }
     public BigDecimal getFees() { return fees; }
     public void setFees(BigDecimal fees) { this.fees = fees; }
     public Instant getExecutedAt() { return executedAt; }

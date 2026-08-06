@@ -196,8 +196,11 @@ public class PortfolioService {
                 qty = qty.add(txQty);
             } else if ("SELL".equalsIgnoreCase(tx.getTxType()) && qty.compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal avgCost = costBasis.divide(qty, SCALE, RoundingMode.HALF_UP);
+                // Prefer the buy price explicitly recorded on the SELL (per-lot); fall back to the
+                // running weighted average for legacy rows that predate this field.
+                BigDecimal costPerShare = tx.getBuyPrice() != null ? tx.getBuyPrice() : avgCost;
                 BigDecimal sellQty = txQty.min(qty);
-                costBasis = costBasis.subtract(avgCost.multiply(sellQty));
+                costBasis = costBasis.subtract(costPerShare.multiply(sellQty));
                 qty = qty.subtract(sellQty);
             }
         }

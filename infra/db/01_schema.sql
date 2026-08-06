@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS transaction (
     tx_type      VARCHAR(10) NOT NULL,
     quantity     NUMERIC(18,4) NOT NULL,
     price        NUMERIC(18,4) NOT NULL,
+    buy_price    NUMERIC(18,4),
+    buy_transaction_id BIGINT,
     fees         NUMERIC(18,4) DEFAULT 0,
     executed_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     notes        VARCHAR(500),
